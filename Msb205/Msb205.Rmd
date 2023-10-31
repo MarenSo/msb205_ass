@@ -1,0 +1,32 @@
+---
+title: "Innlevering MSB205 - høst 2023"
+output: html_notebook
+---
+```{r}
+
+```
+
+Last ned House Sales King County, USA fra Kaggle
+
+Sjekk definisjonen på de ulike variablene
+Les .csv filen med House Sales King County inn i R. Gjort
+Sorter salgene «descending» etter dato, siste først (dvs. mai 2015, april 2015 osv.)
+Bruk dplyr::distinct() til å velge siste salg der vi har multiple salg av samme eiendom.
+Bruk st_as_sf() til å konvertere house data til et sf objekt vha. long lat og sett til geografisk projeksjon, dvs EPSG:4326.
+Konverter dette sf objektet så til projeksjonen EPSG:2926.
+Bruk koordinatene fra Seattles wikipedia-side (øvre høyre hjørne, klikk linken så får dere koordinatene i desimal form) og sett dette punktet som CBD for Seattle.
+Konverter dette punktet til EPSG:2926. Finn avstanden mellom dette punktet og samtlige hus i datasettet i luftlinje. Konverter avstandene til km og legg dem i variabelen dest_CBD i kartet med husdata.
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
