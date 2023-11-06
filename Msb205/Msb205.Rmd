@@ -29,6 +29,7 @@ library(spatialreg)
 library(spData)
 library(huxtable)
 library(knitr)
+library(foreign)
 ```
 
 # Oppgave 1 
@@ -65,4 +66,104 @@ rm(kc_house_data_bruk_sf) #fjerne
 ```
 
 
+# Oppgave 2
 
+```{r Laste inn shp-fil}
+#Last ned WADOH Environmental Health Disparities Index Calculated for King County. 
+file_path <- "Data/WADOH_Environmental_Health_Disparities_Index_Calculated_for_King_County___wadohehdindex_area.shp"
+WADOH_King_County <- st_read(file_path) #Les inn .shp filen WADOH King County.
+```
+
+```{r Velge ut variabler}
+#Plukk ut variablene angitt tidligere i oppgaven.
+kc_wadoh_map <- WADOH_King_County %>% 
+  select(
+  GEO_ID_TRT,
+  EHD_percen,#Environmental Health Index, weighted score many vars
+  linguist_2,#Pop. age 5+ speaking English less than "very well"
+  poverty_pe,#Percentage people living in poverty
+  transporta,#% of income spent on transportation median family in tract
+  unemploy_2,#percentage unemployed
+  housing_pe,#% of households in group "Unaffordable Housing" (>30% inc.)
+  traffic_pe,#% of pop. near heavy traffic roadways
+  diesel,# nox consentration
+  ozone,# ozone consentration
+  PM25, # consentration of Particulate Matter in air
+  toxic_rele, # Toxic release from factories
+  hazardous_, # Hazardous Waste Treatment Storage and disposal Facilities
+  lead_perce, # measure of Lead paint in houses
+  superfund, # Proximity to contaminated sites on national list
+  facilities, # Proximity to Risk Management Plan Facilities
+  wastewater, # Proximity to wastewater facilities
+  sen_pop_pe, # % pop. over 65
+  socio_perc # score social economic determants, low best
+  )
+```
+
+```{r}
+#Transponer kartet til projeksjonen EPSG:2926
+kc_wadoh_map<- st_transform(kc_wadoh_map, 2926)
+```
+
+# "Data provided by permission of King County" må legges inn i fotnote!
+
+```{r Legge inn datasett. Dette fikk jeg ikke lastet ned som dbf-fil}
+acs_b19101_familyincome <- read.csv("./Data/acs_b19101_familyincome.csv")
+```
+
+```{r endre inntektsvariabler}
+acs_b19101_familyincome <- acs_b19101_familyincome %>%
+  select(-starts_with("M")) %>% #fjerner M-variabler
+  mutate(across(starts_with("E"), ~case_when(
+    . <= 35000 ~ "low",
+    . > 35000 & . <= 100000 ~ "mid",
+    . > 100000 ~ "high"
+  )))
+```
+
+```{r Legge inn datasett etnisitet Dette fikk jeg heller ikke lastet ned som dbf-fil}
+acs_b02001_race <- read.csv("./Data/acs_b02001_race.csv")
+```
+
+```{r endre etnisitet-variabler}
+acs_b02001_race <- acs_b02001_race %>%
+  select(-starts_with("M")) %>% #fjerner M-variabler
+  mutate(
+    total = E02001001,
+    hvit_alene = E02001002,
+    svart_alene = E02001003,
+    asiatisk_alene = E02001005,
+    andre_alene = E02001004 + E02001006 + E02001007,
+    blandet = E02001008 + E02001009 + E02001010
+  )
+```
+
+```{r Lage andel-variabler}
+acs_b02001_race <- acs_b02001_race %>%
+  mutate(
+    andel_hvit_alene = hvit_alene / total * 100,
+    andel_svart_alene = svart_alene / total * 100,
+    andel_asiatisk_alene = asiatisk_alene / total * 100,
+    andel_andre_alene = andre_alene / total * 100,
+    andel_blandet = blandet / total * 100
+  )
+```
+
+```{r Laste ned kart}
+file_path2 <- "Data/Kart/tracts10.shp"
+WADOH_King_County <- st_read(file_path2) #Les inn .shp-filen.
+```
+```
+
+
+ 
+
+Lag inntektsvariabelen som beskrevet ovenfor. Legg disse til som nye variabler i WADOH King County.
+
+Last ned
+
+Last shape filene tracts10 fra censusSHP mappen (vær nøye med at dere velger 10 varianten)
+
+Bruk en left_join() for å få dataene fra WADOH King County inn i dette kartet.
+
+Transponer begge kartene til EPSG:2926
