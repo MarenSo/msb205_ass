@@ -34,35 +34,39 @@ library(foreign)
 
 # Oppgave 1 
 ```{r Oppgave 1}
-kc_house_data_bruk <- kc_house_data %>% 
-  arrange(desc(date)) %>% #Sorter salgene «descending» etter dato, siste først (dvs. mai 2015, april 2015 osv.)¨
-  distinct(id, .keep_all = TRUE)
-kc_house_data_bruk_sf <- st_as_sf(kc_house_data_bruk, coords = c("long", "lat"),  
-                 crs = 4326) #Bruk st_as_sf() til å konvertere house data til et sf objekt vha. long lat og sett til geografisk projeksjon, dvs EPSG:4326.
-kc_house_data_bruk_sf <- st_transform(kc_house_data_bruk_sf, 2926) #Konverter dette sf objektet så til projeksjonen EPSG:2926.
+kc_house_data <- read.csv("./Data/kc_house_data.csv")
+kc_house_data$date <- lubridate::ymd_hms(kc_house_data$date) #lager datoobjekt
 
+kc_house_data <- kc_house_data %>%
+  mutate(year = year(date),
+         month = month(date),
+         day = day(date)) %>% #nye variabler for date, month, year
+  arrange(desc(date)) %>% ##sortere datasett basert på dato
+  distinct(id, .keep_all = TRUE) #behold bare siste salg
+kc_house_data_sf <- st_as_sf(kc_house_data, coords = c("long", "lat"), crs = 4326) #Bruk st_as_sf() til å konvertere house data til et sf objekt vha. long lat og sett til geografisk projeksjon, dvs EPSG:4326.
+kc_house_data_sf <- st_transform(kc_house_data_sf, 2926) #endre til EPSG:2926
 ```
 
 ```{r Oppgave 1 - videre, cbd}
-#Bruk koordinatene fra Seattles wikipedia-side (øvre høyre hjørne, klikk linken så får dere koordinatene i desimal form) og sett dette punktet som CBD for Seattle.
+#Bruk koordinatene fra Seattles wikipedia-side (øvre høyre hjørne, klikk linken så får dere koordinatene i desimalform) og sett dette punktet som CBD for Seattle.
 cbd <- data.frame(long = -122.333056, lat = 47.609722) #datasett med koordinatene
   cbd_sf <- st_as_sf(cbd, coords = c("long", "lat"), crs = 4326) #til sf
 cbd_sf <- st_transform(cbd_sf, 2926) #til ESPG 2926
 ```
 
 ```{r rydde datasett og få avstand CBD inn i originaldatasett}
-kc_house_data_bruk_sf <- kc_house_data_bruk_sf %>% select(-starts_with("geometry."), -starts_with("avstand_til_cbd.."), -starts_with("distance_cbd"))
+kc_house_data_sf <- kc_house_data_sf %>% select(-starts_with("geometry."), -starts_with("avstand_til_cbd.."), -starts_with("distance_cbd"))
 
 #Konverter dette punktet til EPSG:2926. Finn avstanden mellom dette punktet og samtlige hus i datasettet i luftlinje. Konverter avstandene til km og legg dem i variabelen dest_CBD i kartet med husdata.
-avstand_til_cbd <- st_distance(kc_house_data_bruk_sf, cbd_sf) #avstand til cbd i luftlinje
+avstand_til_cbd <- st_distance(kc_house_data_sf, cbd_sf) #avstand til cbd i luftlinje
 avstand_til_cbd_km <- avstand_til_cbd * 0.0003048 #1 fot er lik 0.0003048 kilometer
-kc_house_data_bruk_sf$dest_CBD <- avstand_til_cbd_km #inn i datasett
+kc_house_data_sf$dest_CBD <- avstand_til_cbd_km #inn i datasett
 ```
 
 ```{r Oppgave 1 ferdig, må rydde}
-rm(cbd, cbd_sf, kc_house_data, kc_house_data_bruk, kc_house_data_ja) #fjerne unødvendige datasett
-kc_house_data_oppg1 <- kc_house_data_bruk_sf #endre ferdig datasett til "kc_house_data_oppg1"
-rm(kc_house_data_bruk_sf) #fjerne 
+rm(cbd, cbd_sf, kc_house_data) #fjerne unødvendige datasett
+kc_house_data_oppg1 <- kc_house_data_sf #endre ferdig datasett til "kc_house_data_oppg1"
+rm(kc_house_data_sf) #fjerne 
 ```
 
 
@@ -103,6 +107,7 @@ kc_wadoh_map <- WADOH_King_County %>%
 ```{r}
 #Transponer kartet til projeksjonen EPSG:2926
 kc_wadoh_map<- st_transform(kc_wadoh_map, 2926)
+WADOH_King_County <- st_transform(WADOH_King_County, 2926)
 ```
 
 # "Data provided by permission of King County" må legges inn i fotnote!
@@ -120,6 +125,7 @@ acs_b19101_familyincome <- acs_b19101_familyincome %>%
     . > 100000 ~ "high"
   )))
 ```
+
 
 ```{r Legge inn datasett etnisitet Dette fikk jeg heller ikke lastet ned som dbf-fil}
 acs_b02001_race <- read.csv("./Data/acs_b02001_race.csv")
@@ -151,19 +157,59 @@ acs_b02001_race <- acs_b02001_race %>%
 
 ```{r Laste ned kart}
 file_path2 <- "Data/Kart/tracts10.shp"
-WADOH_King_County <- st_read(file_path2) #Les inn .shp-filen.
+tracts10 <- st_read(file_path2) #Les inn .shp-filen.
 ```
+```{r endre EPSG}
+tracts10 <- st_transform(tracts10, 2926)
+```
+
+```{r inntekt inn i WADOH_K_C}
+acs_b19101_familyincome$GEO_ID_TRT <- as.character(acs_b19101_familyincome$GEO_ID_TRT) #må være samme type
+
+WADOH_King_County <- WADOH_King_County %>%
+  left_join(acs_b19101_familyincome, by = c("GEO_ID_TRT", "TRACT_LBL"))
+```
+
+```{r etnisitet inn i WADOH_K_C}
+acs_b02001_race$GEO_ID_TRT <- as.character(acs_b02001_race$GEO_ID_TRT) #til character
+WADOH_King_County <- WADOH_King_County %>%
+  left_join(acs_b02001_race, by = "GEO_ID_TRT", "TRACT_LBL")
+```
+
+```{r Legg census-tracts til?}
+tracts10 <- tracts10 %>%
+  st_join(WADOH_King_County, by = "GEO_ID_TRT") #Legg census-tract data til kartet
+```
+
+```{r Sjekk områdevariablene fra WADOH vha. summary for tracts10}
+summary(tracts10)
 ```
 
 
- 
+```{r}
+tracts10 <- tracts10
+st_join(kc_house_data_oppg1, by = "GEO_ID_TRT")
+```
 
-Lag inntektsvariabelen som beskrevet ovenfor. Legg disse til som nye variabler i WADOH King County.
 
-Last ned
+Gjør en «spatial join» av husdata med tracts10
 
-Last shape filene tracts10 fra censusSHP mappen (vær nøye med at dere velger 10 varianten)
+Sjekk områdevariablene fra WADOH vha. summary for tracts10
 
-Bruk en left_join() for å få dataene fra WADOH King County inn i dette kartet.
+En observasjon fra tracts10 har bare NA for områdevariablene. Dropp denne.
 
-Transponer begge kartene til EPSG:2926
+Lag en faktor-variabel av år og måned ut fra Date, kall den year_month.
+
+Lagre .gpkg filen for husdataene . (Sett opsjonen append=FALSE. Ellers får dere ikke lov til å overskrive filen.)
+
+
+
+TROR DETTE ER FEIL, men ha d i tilfelle.
+common_keys <- intersect(names(tracts10), names(WADOH_King_County))
+print(common_keys) #finne felles kolonnenavn
+any(duplicated(WADOH_King_County$geometry))
+any(duplicated(tracts10$geometry)) #sjekket alle duplikater slik... sikkert ikke den mest effektive måten.
+
+tracts10 <- tracts10 %>%
+  st_join(WADOH_King_County, by = c("GEO_ID_TRT", "FEATURE_ID", "TRACT_STR", "TRACT_INT", "TRACT_FLT", "TRACT_DEL", "TRTLABEL_F", "TRTLABEL_C", "TRTLABEL_T", "LEVEL_3", "TRACT_AREA", "TRACT_PERI", "LOGRECNO", "geometry"))
+```
