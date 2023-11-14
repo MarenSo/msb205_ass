@@ -110,6 +110,9 @@ WADOH_King_County <- st_transform(WADOH_King_County, 2926)
 
 ```{r Legge inn datasett. Dette fikk jeg ikke lastet ned som dbf-fil}
 acs_b19101_familyincome <- read.csv("./Data/acs_b19101_familyincome.csv")
+acs_b19101_familyincome <- acs_b19101_familyincome %>% 
+  select(GEO_ID_TRT)
+
 ```
 
 ```{r endre inntektsvariabler}
@@ -129,10 +132,6 @@ asc_b19101_familyincome <- acs_b19101_familyincome %>%
 
 ```{r}
 acs_b19101_familyincome$GEO_ID_TRT <- as.character(acs_b19101_familyincome$GEO_ID_TRT) #må være samme type
-
-WADOH_King_County <- WADOH_King_County %>%
-  left_join(acs_b19101_familyincome, 
-            by = c("GEO_ID_TRT", "TRACT_LBL"))
 ```
 
 ## Etnisitet i WADOH K_C
@@ -168,111 +167,73 @@ acs_b02001_race <- acs_b02001_race %>%
 ```{r Laste ned kart}
 file_path2 <- "Data/Kart/tracts10.shp"
 tracts10 <- st_read(file_path2) #Les inn .shp-filen.
-```
-
-```{r endre EPSG}
-tracts10 <- st_transform(tracts10, 2926)
+view(tracts10)
 ```
 
 ```{r etnisitet inn i WADOH_K_C}
 acs_b02001_race$GEO_ID_TRT <- as.character(acs_b02001_race$GEO_ID_TRT) #til character
 WADOH_King_County <- WADOH_King_County %>%
-  left_join(acs_b02001_race, by = "GEO_ID_TRT", "TRACT_LBL")
-```
-
-```{r Legg census-tracts til?}
-tracts10 <- tracts10 %>%
-  st_join(WADOH_King_County, by = "GEO_ID_TRT") #Legg census-tract data til kartet
+  left_join(acs_b02001_race, by = "GEO_ID_TRT")
 ```
 
 ```{r Sjekk områdevariablene fra WADOH vha. summary for tracts10}
 summary(tracts10)
 ```
 
+## 3. Hus data 
+
 ```{r}
-# Performing the spatial join
-joined_data <- st_join(kc_house_data_oppg1, tracts10, by = "GEO_ID_TRT")
+library(dplyr)
+
+# Convert the joining key in both dataframes to the same type if they are different
+# For example, if GEO_ID_TRT is numeric in one and character in the other:
+acs_b02001_race$GEO_ID_TRT <- as.character(acs_b02001_race$GEO_ID_TRT)
+acs_b19101_familyincome$GEO_ID_TRT <- as.character(acs_b19101_familyincome$GEO_ID_TRT)
+
+# Now join the datasets
+joined_data <- acs_b02001_race %>%
+               left_join(acs_b19101_familyincome, by = "GEO_ID_TRT")
 
 # Removing rows with missing values
-cleaned_data <- na.omit(joined_data)
+husdata <- na.omit(joined_data)
+
+# Viewing the data
+View(husdata)
+
 
 ```
 
-```{r}
-# Performing the spatial join
-joined_data <- st_join(kc_house_data_oppg1, tracts10, by = "GEO_ID_TRT")
-
-# Removing rows with missing values
-cleaned_data <- na.omit(joined_data)
-
-# Transforming to EPSG:2926
-husdata <- st_transform(cleaned_data, crs = 2926)
-
-```
-
-## Hus data WADOH K_C (opg3)
-
-#### I)
-
-```{r}
-summary.data.frame(tracts10)
-```
-
-```{r}
-# Performing the spatial join
-joined_data <- st_join(husdata, tracts10)
-
-```
-
-```{r}
-# To view the column names of tracts10
-names(tracts10)
-view(tracts10)
-```
-
-#### II)
-
-```{r}
-# Filtering out rows with missing values in Shape_area
-KC_tracts10 <- tracts10 %>%
-  filter(!is.na(Shape_area))
-view(KC_tracts10)
-```
+## WADOH K_C 
 
 ```{r}
 # Adjust the filtering criteria 'WADOH' county, useing COUNTY_STR
-wadoh_data <- tracts10 %>%
-  filter(COUNTY_STR.x == "033") %>%
-  select(TRACT_AREA.x)  
+wadoh_data <- husdata %>%
+  filter(COUNTY_STR == "033") %>%
+  select(TRACT_AREA)  
 
 # Summary of the area for WADOH
 summary(wadoh_data$TRACT_AREA)
 ```
 
-#### 
-
-```{r}
-# Renaming the Date column to year_month
-cleaned_data <- cleaned_data %>%
-  rename(year_month = date)
-#view(cleaned_data)
-```
-
 #### III)
 
 ```{r}
-#Lag en faktor-variabel av år og måned ut fra Date, kall den year_month.
-kc_house_data <- cleaned_data %>%
-  mutate(year_month = str_c(year, month))
-#view(kc_house_data)
+# Renaming the Date column to year_month
+wadoh_data <- wadoh_data %>%
+  rename(year_month = date)
+#view(wadoh)
 ```
 
 #### IV)
 
 ```{r}
 #Lagre .gpkg filen for husdataene . (Sett opsjonen append=FALSE. Ellers får dere ikke lov til å overskrive filen.)
-st_write(kc_house_data, "kc_house_data.gpkg", append = FALSE)
+st_write(husdata, "husdata.gpkg", append = FALSE)
 st_write(wadoh_data, "wadoh.gpkg", append = FALSE)
+
+```
+
+```{r}
 
 ```
 
