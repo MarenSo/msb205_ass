@@ -110,7 +110,7 @@ WADOH_King_County <- st_transform(WADOH_King_County, 2926)
 
 ```{r Legge inn datasett. Dette fikk jeg ikke lastet ned som dbf-fil}
 acs_b19101_familyincome <- read.csv("acs_b19101_familyincome.csv")
-view(acs_b19101_familyincome)
+#view(acs_b19101_familyincome)
 ```
 
 ```{r endre inntektsvariabler}
@@ -137,7 +137,7 @@ acs_b19101_familyincome$GEO_ID_TRT <- as.character(acs_b19101_familyincome$GEO_I
 ```{r}
 library(readr)
 acs_b02001_race <- read_csv("acs_b02001_race.csv")
-#
+
 #View(acs_b02001_race)
 ```
 
@@ -168,7 +168,7 @@ acs_b02001_race <- acs_b02001_race %>%
 ```{r Laste ned kart}
 file_path2 <- "Data/Kart/tracts10.shp"
 tracts10 <- st_read(file_path2) #Les inn .shp-filen.
-view(tracts10)
+#view(tracts10)
 ```
 
 ```{r etnisitet inn i WADOH_K_C}
@@ -181,13 +181,12 @@ WADOH_King_County <- WADOH_King_County %>%
 summary(tracts10)
 ```
 
-## 3. Hus data
+## 3. Hus data = Inntekt og Etnisitet
 
 ```{r}
-library(dplyr)
-
 # Convert the joining key in both dataframes to the same type if they are different
 # For example, if GEO_ID_TRT is numeric in one and character in the other:
+
 acs_b02001_race$GEO_ID_TRT <- as.character(acs_b02001_race$GEO_ID_TRT)
 acs_b19101_familyincome$GEO_ID_TRT <- as.character(acs_b19101_familyincome$GEO_ID_TRT)
 
@@ -195,10 +194,10 @@ acs_b19101_familyincome$GEO_ID_TRT <- as.character(acs_b19101_familyincome$GEO_I
 joined_data <- acs_b02001_race %>%
                left_join(acs_b19101_familyincome, by = "GEO_ID_TRT")
 
-# Removing rows with missing values
+#Removing rows with missing values
 husdata <- na.omit(joined_data)
 
-# Viewing the data
+
 View(husdata)
 
 
@@ -211,6 +210,7 @@ View(husdata)
 acs_b02001_race$GEO_ID_TRT <- as.character(acs_b02001_race$GEO_ID_TRT) #til character
 WADOH_KC_Etnisitet <- WADOH_King_County %>%
   left_join(acs_b02001_race, by = "GEO_ID_TRT")
+view(WADOH_KC_Etnisitet)
 ```
 
 ```{r}
@@ -220,13 +220,13 @@ WADOH_KC_income <- WADOH_King_County %>%
   left_join(acs_b19101_familyincome, by = "GEO_ID_TRT")
 ```
 
-#### III)
+#### III) 
 
 ```{r}
 # Renaming the Date column to year_month
 WADOH_KC_Etnisitet <- WADOH_KC_Etnisitet %>%
   rename(year_month = date)
-#view(WADOH_KC_Etnisitet)
+view(WADOH_KC_Etnisitet)
 ```
 
 #### IV)
