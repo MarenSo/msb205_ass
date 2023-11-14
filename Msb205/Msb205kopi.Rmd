@@ -1,0 +1,289 @@
+---
+title: "Hedonic House Prisce Model King County"
+author: "Sognefest & Jones (2023)"
+date: "Innleveringsfrist: 20.11.2023"
+format: html
+format: pdf
+abstract: "The Hedonic Houseprice model with maps....."
+editor: visual
+bibliography: [King_county.bib]
+output-file: Msb205.qmd
+page-layout: full
+number-sections: true
+papersize: a4
+---
+
+```{r}
+library(dplyr)
+library(sf)
+library(Jmisc)
+library(tidyverse)
+library(ggplot2)
+library(sp)
+library(spdep)
+library(spatialreg)
+library(spData)
+library(huxtable)
+library(knitr)
+library(foreign)
+```
+
+# Oppgave 1
+
+```{r Oppgave 1}
+kc_house_data <- read.csv("./Data/kc_house_data.csv")
+kc_house_data$date <- lubridate::ymd_hms(kc_house_data$date) #lager datoobjekt
+
+kc_house_data <- kc_house_data %>%
+  mutate(year = year(date),
+         month = month(date),
+         day = day(date)) %>% #nye variabler for date, month, year
+  arrange(desc(date)) %>% ##sortere datasett basert på dato
+  distinct(id, .keep_all = TRUE) #behold bare siste salg
+kc_house_data_sf <- st_as_sf(kc_house_data, coords = c("long", "lat"), crs = 4326) #Bruk st_as_sf() til å konvertere house data til et sf objekt vha. long lat og sett til geografisk projeksjon, dvs EPSG:4326.
+kc_house_data_sf <- st_transform(kc_house_data_sf, 2926) #endre til EPSG:2926
+```
+
+```{r Oppgave 1 - videre, cbd}
+#Bruk koordinatene fra Seattles wikipedia-side (øvre høyre hjørne, klikk linken så får dere koordinatene i desimalform) og sett dette punktet som CBD for Seattle.
+cbd <- data.frame(long = -122.333056, lat = 47.609722) #datasett med koordinatene
+  cbd_sf <- st_as_sf(cbd, coords = c("long", "lat"), crs = 4326) #til sf
+cbd_sf <- st_transform(cbd_sf, 2926) #til ESPG 2926
+```
+
+```{r rydde datasett og få avstand CBD inn i originaldatasett}
+kc_house_data_sf <- kc_house_data_sf %>% select(-starts_with("geometry."), -starts_with("avstand_til_cbd.."), -starts_with("distance_cbd"))
+
+#Konverter dette punktet til EPSG:2926. Finn avstanden mellom dette punktet og samtlige hus i datasettet i luftlinje. Konverter avstandene til km og legg dem i variabelen dest_CBD i kartet med husdata.
+avstand_til_cbd <- st_distance(kc_house_data_sf, cbd_sf) #avstand til cbd i luftlinje
+avstand_til_cbd_km <- avstand_til_cbd * 0.0003048 #1 fot er lik 0.0003048 kilometer
+kc_house_data_sf$dest_CBD <- avstand_til_cbd_km #inn i datasett
+```
+
+```{r Oppgave 1 ferdig, må rydde}
+rm(cbd, cbd_sf, kc_house_data) #fjerne unødvendige datasett
+kc_house_data_oppg1 <- kc_house_data_sf #endre ferdig datasett til "kc_house_data_oppg1"
+rm(kc_house_data_sf) #fjerne 
+```
+
+# Oppgave 2
+
+```{r Laste inn shp-fil}
+#Last ned WADOH Environmental Health Disparities Index Calculated for King County. 
+file_path <- "Data/WADOH_Environmental_Health_Disparities_Index_Calculated_for_King_County___wadohehdindex_area.shp"
+WADOH_King_County <- st_read(file_path) #Les inn .shp filen WADOH King County.
+```
+
+```{r Velge ut variabler}
+#Plukk ut variablene angitt tidligere i oppgaven.
+kc_wadoh_map <- WADOH_King_County %>% 
+  select(
+  GEO_ID_TRT,
+  EHD_percen,#Environmental Health Index, weighted score many vars
+  linguist_2,#Pop. age 5+ speaking English less than "very well"
+  poverty_pe,#Percentage people living in poverty
+  transporta,#% of income spent on transportation median family in tract
+  unemploy_2,#percentage unemployed
+  housing_pe,#% of households in group "Unaffordable Housing" (>30% inc.)
+  traffic_pe,#% of pop. near heavy traffic roadways
+  diesel,# nox consentration
+  ozone,# ozone consentration
+  PM25, # consentration of Particulate Matter in air
+  toxic_rele, # Toxic release from factories
+  hazardous_, # Hazardous Waste Treatment Storage and disposal Facilities
+  lead_perce, # measure of Lead paint in houses
+  superfund, # Proximity to contaminated sites on national list
+  facilities, # Proximity to Risk Management Plan Facilities
+  wastewater, # Proximity to wastewater facilities
+  sen_pop_pe, # % pop. over 65
+  socio_perc # score social economic determants, low best
+  )
+```
+
+```{r}
+#Transponer kartet til projeksjonen EPSG:2926
+kc_wadoh_map<- st_transform(kc_wadoh_map, 2926)
+WADOH_King_County <- st_transform(WADOH_King_County, 2926)
+```
+
+## Inntekt i WADOH_K_C
+
+```{r Legge inn datasett. Dette fikk jeg ikke lastet ned som dbf-fil}
+acs_b19101_familyincome <- read.csv("./Data/acs_b19101_familyincome.csv")
+```
+
+```{r endre inntektsvariabler}
+  acs_b19101_familyincome <- acs_b19101_familyincome %>% 
+    mutate(low = (E19101138 + E19101139 + E19101140 + E19101141 + 
+                      E19101142 + E19101143)/E19101137) %>% 
+    mutate(mid = (E19101144 + E19101145 + E19101146 + E19101147 + 
+                      E19101148 + E19101149)/E19101137) %>% 
+    mutate(high = (E19101150 + E19101151 + E19101152 + E19101153)/E19101137)
+```
+
+```{r}
+#Select income groups, 
+asc_b19101_familyincome <- acs_b19101_familyincome %>% 
+    select(GEO_ID_TRT, low, mid, high) 
+```
+
+```{r}
+acs_b19101_familyincome$GEO_ID_TRT <- as.character(acs_b19101_familyincome$GEO_ID_TRT) #må være samme type
+
+WADOH_King_County <- WADOH_King_County %>%
+  left_join(acs_b19101_familyincome, 
+            by = c("GEO_ID_TRT", "TRACT_LBL"))
+```
+
+## Etnisitet i WADOH K_C
+
+```{r Legge inn datasett etnisitet Dette fikk jeg heller ikke lastet ned som dbf-fil}
+acs_b02001_race <- read.csv("./Data/acs_b02001_race.csv")
+```
+
+```{r endre etnisitet-variabler}
+acs_b02001_race <- acs_b02001_race %>%
+  select(-starts_with("M")) %>% #fjerner M-variabler
+  mutate(
+    total = E02001001,
+    hvit_alene = E02001002,
+    svart_alene = E02001003,
+    asiatisk_alene = E02001005,
+    andre_alene = E02001004 + E02001006 + E02001007,
+    blandet = E02001008 + E02001009 + E02001010
+  )
+```
+
+```{r Lage andel-variabler}
+acs_b02001_race <- acs_b02001_race %>%
+  mutate(
+    andel_hvit_alene = hvit_alene / total * 100,
+    andel_svart_alene = svart_alene / total * 100,
+    andel_asiatisk_alene = asiatisk_alene / total * 100,
+    andel_andre_alene = andre_alene / total * 100,
+    andel_blandet = blandet / total * 100
+  )
+```
+
+```{r Laste ned kart}
+file_path2 <- "Data/Kart/tracts10.shp"
+tracts10 <- st_read(file_path2) #Les inn .shp-filen.
+```
+
+```{r endre EPSG}
+tracts10 <- st_transform(tracts10, 2926)
+```
+
+```{r etnisitet inn i WADOH_K_C}
+acs_b02001_race$GEO_ID_TRT <- as.character(acs_b02001_race$GEO_ID_TRT) #til character
+WADOH_King_County <- WADOH_King_County %>%
+  left_join(acs_b02001_race, by = "GEO_ID_TRT", "TRACT_LBL")
+```
+
+```{r Legg census-tracts til?}
+tracts10 <- tracts10 %>%
+  st_join(WADOH_King_County, by = "GEO_ID_TRT") #Legg census-tract data til kartet
+```
+
+```{r Sjekk områdevariablene fra WADOH vha. summary for tracts10}
+summary(tracts10)
+```
+
+```{r}
+# Performing the spatial join
+joined_data <- st_join(kc_house_data_oppg1, tracts10, by = "GEO_ID_TRT")
+
+# Removing rows with missing values
+cleaned_data <- na.omit(joined_data)
+
+```
+
+```{r}
+# Performing the spatial join
+joined_data <- st_join(kc_house_data_oppg1, tracts10, by = "GEO_ID_TRT")
+
+# Removing rows with missing values
+cleaned_data <- na.omit(joined_data)
+
+# Transforming to EPSG:2926
+husdata <- st_transform(cleaned_data, crs = 2926)
+
+```
+
+## Hus data WADOH K_C (opg3)
+
+#### I)
+
+```{r}
+summary.data.frame(tracts10)
+```
+
+```{r}
+# Performing the spatial join
+joined_data <- st_join(husdata, tracts10)
+
+```
+
+```{r}
+# To view the column names of tracts10
+names(tracts10)
+view(tracts10)
+```
+
+#### II)
+
+```{r}
+# Filtering out rows with missing values in Shape_area
+KC_tracts10 <- tracts10 %>%
+  filter(!is.na(Shape_area))
+view(KC_tracts10)
+```
+
+```{r}
+# Adjust the filtering criteria 'WADOH' county, useing COUNTY_STR
+wadoh_data <- tracts10 %>%
+  filter(COUNTY_STR.x == "033") %>%
+  select(TRACT_AREA.x)  
+
+# Summary of the area for WADOH
+summary(wadoh_data$TRACT_AREA)
+```
+
+#### 
+
+```{r}
+# Renaming the Date column to year_month
+cleaned_data <- cleaned_data %>%
+  rename(year_month = date)
+#view(cleaned_data)
+```
+
+#### III)
+
+```{r}
+#Lag en faktor-variabel av år og måned ut fra Date, kall den year_month.
+kc_house_data <- cleaned_data %>%
+  mutate(year_month = str_c(year, month))
+#view(kc_house_data)
+```
+
+#### IV)
+
+```{r}
+#Lagre .gpkg filen for husdataene . (Sett opsjonen append=FALSE. Ellers får dere ikke lov til å overskrive filen.)
+st_write(kc_house_data, "kc_house_data.gpkg", append = FALSE)
+st_write(wadoh_data, "wadoh.gpkg", append = FALSE)
+
+```
+
+## 4. EDA i GeoDA
+
+#### I) Lag et nytt prosjekt i GeoDA
+
+#### II) Last inn husdataene via .gpkg filen lagret overnfor
+
+#### III) Generer en vekt fil utfra 3 og 10 nærmeste nabo
+
+#### IV) Prøv å finne ut hvor de små og dyre, de store og dyre, de billige og store og de små og billige boligene ligger (prøv Bivariate Morans I)
+
+#### V) Dere kan evt også eksprementere med SAR, SEM, og lm modeller i GeoDA
