@@ -31,7 +31,7 @@ library(foreign)
 # Oppgave 1
 
 ```{r Oppgave 1}
-kc_house_data <- read.csv("./Data/kc_house_data.csv")
+kc_house_data <- read.csv("kc_house_data.csv")
 kc_house_data$date <- lubridate::ymd_hms(kc_house_data$date) #lager datoobjekt
 
 kc_house_data <- kc_house_data %>%
@@ -109,14 +109,12 @@ WADOH_King_County <- st_transform(WADOH_King_County, 2926)
 ## Inntekt i WADOH_K_C
 
 ```{r Legge inn datasett. Dette fikk jeg ikke lastet ned som dbf-fil}
-acs_b19101_familyincome <- read.csv("./Data/acs_b19101_familyincome.csv")
-acs_b19101_familyincome <- acs_b19101_familyincome %>% 
-  select(GEO_ID_TRT)
-
+acs_b19101_familyincome <- read.csv("acs_b19101_familyincome.csv")
+view(acs_b19101_familyincome)
 ```
 
 ```{r endre inntektsvariabler}
-  acs_b19101_familyincome <- acs_b19101_familyincome %>% 
+ acs_b19101_familyincome <- acs_b19101_familyincome %>% 
     mutate(low = (E19101138 + E19101139 + E19101140 + E19101141 + 
                       E19101142 + E19101143)/E19101137) %>% 
     mutate(mid = (E19101144 + E19101145 + E19101146 + E19101147 + 
@@ -136,8 +134,11 @@ acs_b19101_familyincome$GEO_ID_TRT <- as.character(acs_b19101_familyincome$GEO_I
 
 ## Etnisitet i WADOH K_C
 
-```{r Legge inn datasett etnisitet Dette fikk jeg heller ikke lastet ned som dbf-fil}
-acs_b02001_race <- read.csv("./Data/acs_b02001_race.csv")
+```{r}
+library(readr)
+acs_b02001_race <- read_csv("acs_b02001_race.csv")
+#
+#View(acs_b02001_race)
 ```
 
 ```{r endre etnisitet-variabler}
@@ -180,7 +181,7 @@ WADOH_King_County <- WADOH_King_County %>%
 summary(tracts10)
 ```
 
-## 3. Hus data 
+## 3. Hus data
 
 ```{r}
 library(dplyr)
@@ -203,33 +204,37 @@ View(husdata)
 
 ```
 
-## WADOH K_C 
+## WADOH K_C
 
 ```{r}
 # Adjust the filtering criteria 'WADOH' county, useing COUNTY_STR
-wadoh_data <- husdata %>%
-  filter(COUNTY_STR == "033") %>%
-  select(TRACT_AREA)  
+acs_b02001_race$GEO_ID_TRT <- as.character(acs_b02001_race$GEO_ID_TRT) #til character
+WADOH_KC_Etnisitet <- WADOH_King_County %>%
+  left_join(acs_b02001_race, by = "GEO_ID_TRT")
+```
 
-# Summary of the area for WADOH
-summary(wadoh_data$TRACT_AREA)
+```{r}
+acs_b19101_familyincome$GEO_ID_TRT <- as.character(acs_b19101_familyincome$GEO_ID_TRT) 
+#til character
+WADOH_KC_income <- WADOH_King_County %>%
+  left_join(acs_b19101_familyincome, by = "GEO_ID_TRT")
 ```
 
 #### III)
 
 ```{r}
 # Renaming the Date column to year_month
-wadoh_data <- wadoh_data %>%
+WADOH_KC_Etnisitet <- WADOH_KC_Etnisitet %>%
   rename(year_month = date)
-#view(wadoh)
+#view(WADOH_KC_Etnisitet)
 ```
 
 #### IV)
 
 ```{r}
 #Lagre .gpkg filen for husdataene . (Sett opsjonen append=FALSE. Ellers får dere ikke lov til å overskrive filen.)
-st_write(husdata, "husdata.gpkg", append = FALSE)
-st_write(wadoh_data, "wadoh.gpkg", append = FALSE)
+st_write(WADOH_KC_Etnisitet, "WADOH_KC_Etnisitet.gpkg", append = FALSE)
+st_write(WADOH_KC_income, "WADAOH_KC_income.gpkg", append = FALSE)
 
 ```
 
