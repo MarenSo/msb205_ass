@@ -1,28 +1,18 @@
 ---
-title: "Innlevering MSB205"
-output:
-  html_document:
-    df_print: paged
-  pdf_document: default
+title: "Hedonic House Prisce Model King County"
+author: "Sognefest & Jones (2023)"
+date: "Innleveringsfrist: 20.11.2023"
+format: pdf
+abstract: "The Hedonic Houseprice model with maps....."
+editor: visual
+bibliography: [King_county.bib]
+output-file: Msb205.qmd
+page-layout: full
+number-sections: true
+papersize: a4
 ---
 
-
-title: Innlevering MSB205
-author: Maren Sognefest og Mona Lisa Jones
-Affiliation: HVL
-email: 152148@stud.hvl.no & xxxxxx@stud.hvl.no
-bibliography: Mittbibliotek.bib
-bib-humanities: true
-nocite: 
-lang: no-NB
-fontsize: 12pt
-linestretch: 1.5
-output:
-  html_notebook: default
-  pdf_document: default
-  word_document: default
-  html_document:
-    df_print: paged
+title: Innlevering MSB205 author: Maren Sognefest og Mona Lisa Jones Affiliation: HVL email: 152148\@stud.hvl.no & xxxxxx\@stud.hvl.no bibliography: Mittbibliotek.bib bib-humanities: true nocite: lang: no-NB fontsize: 12pt linestretch: 1.5 output: html_notebook: default pdf_document: default word_document: default html_document: df_print: paged
 
 csl: apa-no-ampersand
 
@@ -43,7 +33,8 @@ library(knitr)
 library(foreign)
 ```
 
-# Oppgave 1 
+## Oppgave 1
+
 ```{r Oppgave 1}
 kc_house_data <- read.csv("./Data/kc_house_data.csv")
 ```
@@ -79,7 +70,6 @@ kc_house_data_sf <- st_as_sf(
 kc_house_data_sf <- st_transform(kc_house_data_sf, 2926)
 ```
 
-
 ```{r Oppgave 1 - videre, cbd}
 # Bruk koordinatene fra Seattles wikipedia-side (øvre høyre hjørne, 
 # klikk linken så får dere koordinatene i desimalform) og sett 
@@ -91,21 +81,6 @@ cbd <- st_sfc(st_point(c(-122.333056, 47.609722)), crs = 4326)
 
 # til ESPG 2926
 cbd_sf <- st_transform(cbd, 2926) 
-```
-
-
-```{r}
-# DETTE SKJØNNER JEG IKKE. 
-# KAN IKKE SE AT HAR NOEN HENSIKT. VURDER Å SLETTE
-# JEG HAR SATT EVAL TIL FALSE SLIK AT DEN IKKE KJØRER
-#| label: rydde datasett og få avstand CBD inn i originaldatasett
-#| eval: false
-kc_house_data_sf <- kc_house_data_sf  |> 
-  select(
-    -starts_with("geometry."), 
-    -starts_with("avstand_til_cbd.."), 
-    -starts_with("distance_cbd")
-    )
 ```
 
 ```{r}
@@ -127,14 +102,21 @@ kc_house_data_sf <- kc_house_data_sf %>%
 # kc_house_data_sf$dest_CBD <- avstand_til_cbd_km #inn i datasett
 ```
 
+## 
+
+```{r}
+rm(cbd, cbd_sf, kc_house_data) #fjerne unødvendige datasett
+kc_house_data_oppg1 <- kc_house_data_sf #endre ferdig datasett til "kc_house_data_oppg1"
+rm(kc_house_data_sf) #fjerne 
+```
+
 ```{r Oppgave 1 ferdig, må rydde}
 rm(cbd, cbd_sf, kc_house_data) #fjerne unødvendige datasett
 kc_house_data_oppg1 <- kc_house_data_sf #endre ferdig datasett til "kc_house_data_oppg1"
 rm(kc_house_data_sf) #fjerne 
 ```
 
-
-# Oppgave 2
+## Oppgave 2
 
 ```{r Laste inn shp-fil}
 #Last ned WADOH Environmental Health Disparities Index Calculated for King County. 
@@ -144,7 +126,7 @@ WADOH_King_County <- st_read(file_path) #Les inn .shp filen WADOH King County.
 
 ```{r Velge ut variabler}
 #Plukk ut variablene angitt tidligere i oppgaven.
-kc_wadoh_map <- WADOH_King_County %>% 
+WADOH_King_County <- WADOH_King_County %>% 
   select(
   GEO_ID_TRT,
   EHD_percen,#Environmental Health Index, weighted score many vars
@@ -170,57 +152,47 @@ kc_wadoh_map <- WADOH_King_County %>%
 
 ```{r}
 #Transponer kartet til projeksjonen EPSG:2926
-kc_wadoh_map <- st_transform(kc_wadoh_map, 2926)
 WADOH_King_County <- st_transform(WADOH_King_County, 2926)
 ```
 
-# "Data provided by permission of King County" må legges inn i fotnote!
+# Inntekt i WADOH K_C
 
 ```{r Legge inn datasett. Dette fikk jeg ikke lastet ned som dbf-fil}
-acs_b19101_familyincome <- read.csv("./Data/acs_b19101_familyincome.csv")
+#acs_b19101_familyincome <- read.csv("Data\acs_b19101_familyincome.csv")
+acs_b19101_familyincome <- read.dbf(
+  "Data/censusSHP/acs_b19101_familyincome.dbf"
+  )
 ```
-
-```{r endre inntektsvariabler}
-# Denne forstår jeg ikke
-# endret eval til false
-#| eval: false
-acs_b19101_familyincome <- acs_b19101_familyincome %>%
-  select(-starts_with("M")) %>% #fjerner M-variabler
-  mutate(across(starts_with("E"), ~case_when(
-    . <= 35000 ~ "low",
-    . > 35000 & . <= 100000 ~ "mid",
-    . > 100000 ~ "high"
-  )))
-```
-
-KOM SÅ LANGT
-
-Inntektsvariabelen. Finner ikke census-dataene så kan ikke lese inn .dbf filen
 
 ```{r}
-#| eval: false
-library(foreign)
-kc_mean_fam_inc <- read.dbf("Msb205/Data/acs_b19101_familyincome.dbf", as.is = TRUE) %>% 
-  select(GEOIDTRT, starts_with("E")) %>% 
-  transmute(
-    GEO_ID_TRT = GEOIDTRT,
-    inc_fam_tot = E19101137,
-    inc_fam_low = E19101138 + E19101139 + E19101140 + E19101141 + E19101142 + E19101143,
-    inc_fam_med = E19101144 + E19101145 + E19101146 + E19101147 + E19101148 + E19101149,
-    inc_fam_high =  E19101150 + E19101151 + E19101152 + E19101153,
-    inc_fam_low_per = inc_fam_low/inc_fam_tot,
-    inc_fam_med_per = inc_fam_med/inc_fam_tot,
-    inc_fam_high_per = inc_fam_high/inc_fam_tot
-    )
+#plukke ut innteksvariabler 
+acs_b19101_familyincome <- acs_b19101_familyincome %>% 
+    mutate(low = (E19101138 + E19101139 + E19101140 + E19101141 + 
+                      E19101142 + E19101143)/E19101137) %>% 
+    mutate(mid = (E19101144 + E19101145 + E19101146 + E19101147 + 
+                      E19101148 + E19101149)/E19101137) %>% 
+    mutate(high = (E19101150 + E19101151 + E19101152 + E19101153)/E19101137)
+
+#view(acs_b19101_familyincome)
 ```
 
-
-
-```{r Legge inn datasett etnisitet Dette fikk jeg heller ikke lastet ned som dbf-fil}
-acs_b02001_race <- read.csv("./Data/acs_b02001_race.csv")
+```{r}
+#Select income groups, 
+acs_b19101_familyincome <- acs_b19101_familyincome %>% 
+    select(GEOIDTRT, low, mid, high) 
 ```
 
-```{r endre etnisitet-variabler}
+## Etnisitet i WADOH K_C
+
+```{r}
+#Legge inn datasett etnisitet. 
+#acs_b02001_race <- read.csv("Data\acs_b02001_race.csv")
+acs_b02001_race <- read.dbf(
+  "Data/censusSHP/acs_b02001_race.dbf"
+  )
+```
+
+```{r}
 acs_b02001_race <- acs_b02001_race %>%
   select(-starts_with("M")) %>% #fjerner M-variabler
   mutate(
@@ -241,69 +213,54 @@ acs_b02001_race <- acs_b02001_race %>%
     andel_asiatisk_alene = asiatisk_alene / total * 100,
     andel_andre_alene = andre_alene / total * 100,
     andel_blandet = blandet / total * 100
-  )
+  ) %>% 
+  select(GEOID:TRACTLABEL, andel_hvit_alene:andel_blandet)
 ```
+
+## Husdata; spatial join (opg 3)
 
 ```{r Laste ned kart}
-file_path2 <- "Data/Kart/tracts10.shp"
-tracts10 <- st_read(file_path2) #Les inn .shp-filen.
+kc_house_data_oppg1 <- st_join(kc_house_data_oppg1, WADOH_King_County)
 ```
-```{r endre EPSG}
-tracts10 <- st_transform(tracts10, 2926)
-```
-
-```{r inntekt inn i WADOH_K_C}
-acs_b19101_familyincome$GEO_ID_TRT <- as.character(acs_b19101_familyincome$GEO_ID_TRT) #må være samme type
-
-WADOH_King_County <- WADOH_King_County %>%
-  left_join(acs_b19101_familyincome, by = c("GEO_ID_TRT", "TRACT_LBL"))
-```
-
-```{r etnisitet inn i WADOH_K_C}
-acs_b02001_race$GEO_ID_TRT <- as.character(acs_b02001_race$GEO_ID_TRT) #til character
-WADOH_King_County <- WADOH_King_County %>%
-  left_join(acs_b02001_race, by = "GEO_ID_TRT", "TRACT_LBL")
-```
-
-```{r Legg census-tracts til?}
-tracts10 <- tracts10 %>%
-  st_join(WADOH_King_County, by = "GEO_ID_TRT") #Legg census-tract data til kartet
-```
-
-```{r Sjekk områdevariablene fra WADOH vha. summary for tracts10}
-summary(tracts10)
-```
-
 
 ```{r}
-tracts10 <- tracts10
-st_join(kc_house_data_oppg1, by = "GEO_ID_TRT")
+kc_house_data_oppg1 <- left_join(kc_house_data_oppg1, acs_b02001_race,
+                                 join_by(GEO_ID_TRT == GEOIDTRT))
 ```
-
-
-Gjør en «spatial join» av husdata med tracts10
-
-Sjekk områdevariablene fra WADOH vha. summary for tracts10
-
-En observasjon fra tracts10 har bare NA for områdevariablene. Dropp denne.
-
-Lag en faktor-variabel av år og måned ut fra Date, kall den year_month.
-
-Lagre .gpkg filen for husdataene . (Sett opsjonen append=FALSE. Ellers får dere ikke lov til å overskrive filen.)
-
-
-
-TROR DETTE ER FEIL, men ha d i tilfelle.
 
 ```{r}
-common_keys <- intersect(names(tracts10), names(WADOH_King_County))
-print(common_keys) #finne felles kolonnenavn
-any(duplicated(WADOH_King_County$geometry))
-any(duplicated(tracts10$geometry)) #sjekket alle duplikater slik... sikkert ikke den mest effektive måten.
-
-tracts10 <- tracts10 %>%
-  st_join(WADOH_King_County, by = c("GEO_ID_TRT", "FEATURE_ID", "TRACT_STR", "TRACT_INT", "TRACT_FLT", "TRACT_DEL", "TRTLABEL_F", "TRTLABEL_C", "TRTLABEL_T", "LEVEL_3", "TRACT_AREA", "TRACT_PERI", "LOGRECNO", "geometry"))
+kc_house_data_oppg1 <- left_join(kc_house_data_oppg1, acs_b19101_familyincome,
+                                 join_by(GEO_ID_TRT == GEOIDTRT))
 ```
 
+```{r}
+kc_house_data_oppg1 <- kc_house_data_oppg1 %>% 
+  mutate(
+    year_month = paste0(
+      as.character(year(date)), 
+      as.character(month(date))),
+    year_month = fct(year_month)
+  ) 
+```
 
+```{r}
+##Lagre .gpkg filen for husdataene . (Sett opsjonen append=FALSE. Ellers får dere ikke lov til å overskrive filen.)
+KC_husdata <- kc_house_data_oppg1
+```
 
+```{r}
+#Lagre .gpkg filen for husdataene . (Sett opsjonen append=FALSE. Ellers får dere ikke lov til å overskrive filen.)
+st_write(KC_husdata, "KC_husdata.gpkg", append = FALSE)
+```
+
+## 4. EDA i GeoDA
+
+#### I) Lag et nytt prosjekt i GeoDA
+
+#### II) Last inn husdataene via .gpkg filen lagret overnfor
+
+#### III) Generer en vekt fil utfra 3 og 10 nærmeste nabo
+
+#### IV) Prøv å finne ut hvor de små og dyre, de store og dyre, de billige og store og de små og billige boligene ligger (prøv Bivariate Morans I)
+
+#### V) Dere kan evt også eksprementere med SAR, SEM, og lm modeller i GeoDA
