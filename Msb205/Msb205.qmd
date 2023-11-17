@@ -264,7 +264,7 @@ st_write(KC_husdata, "KC_husdata.gpkg", append = FALSE)
 
 # EDA i GeoDA
 
-Spatial EDA (Exploratory Data Analysis) er en viktig prosess i geografisk og romlig analyse som hjelper til med å forstå mønstre, forhold, og tendenser i geografiske data. Denne tilnærmingen er spesielt relevant i felt som urban planlegging, miljøvitenskap, epidemiologi og, som i ditt tilfelle, i analyse av boligmarkedet.
+Spatial EDA (Exploratory Data Analysis) er en viktig prosess i geografisk og romlig analyse som hjelper til med å forstå mønstre, forhold, og tendenser i geografiske data. Denne tilnærmingen er spesielt relevant for analyse av boligmarkedet.
 
 #### I) Lag et nytt prosjekt i GeoDA
 
@@ -289,21 +289,66 @@ vanligvis brukes for å måle romlig autokorrelasjon for en enkelt variabel. Biv
 
 i\. Gi en kort sammenfatning av funnene fra EDA.
 
-ii\. Definer mint tre hedonske modeller. Ta utgangspunkt i Bishop et
+ii\. Definer mint tre hedonske modeller.
+
+Ta utgangspunkt i Bishop et
 
 al. (2020) og diskuter gjerne valgte modeller utfra denne.
 
-1\. En null modell med bare huskarakteristika og tids-dummier
+#### 1. En null modell med bare huskarakteristika og tids-dummier (year_month)
 
-(year_month)
+#### 2. En modell med huskarakteristika, dist_CBD, relevante tract-
 
-2\. En modell med huskarakteristika, dist_CBD, relevante tract-
+#### variabler og tids-dummier.
 
-variabler og tids-dummier.
+```{r}
+hedon1 %>% 
+    linearHypothesis(c("year_month2014-06=0", "year_month2014-07=0",
+                       "year_month2014-08=0", "year_month2014-09=0",
+                       "year_month2014-10=0", "year_month2014-11=0",
+                       "year_month2014-12=0", "year_month2015-01=0",
+                       "year_month2015-02=0", "year_month2015-03=0",
+                       "year_month2015-04=0", "year_month2015-05=0"),
+                     white_adjust = hc3)
+```
 
-3\. En modell med huskarakteristika, dist_CBD, EHD indeks
+```{r}
+hedon2 %>% 
+    linearHypothesis(c("year_month2014-06=0", "year_month2014-07=0",
+                       "year_month2014-08=0", "year_month2014-09=0",
+                       "year_month2014-10=0", "year_month2014-11=0",
+                       "year_month2014-12=0", "year_month2015-01=0",
+                       "year_month2015-02=0", "year_month2015-03=0",
+                       "year_month2015-04=0", "year_month2015-05=0"),
+                     white_adjust = hc4)
+```
 
-(eventuelt inntektsvariabel) og tids-dummier.
+```{r}
+hedon3 %>% 
+    linearHypothesis(c("year_month2014-06=0", "year_month2014-07=0",
+                       "year_month2014-08=0", "year_month2014-09=0",
+                       "year_month2014-10=0", "year_month2014-11=0",
+                       "year_month2014-12=0", "year_month2015-01=0",
+                       "year_month2015-02=0", "year_month2015-03=0",
+                       "year_month2015-04=0", "year_month2015-05=0"),
+                     white_adjust = hc1)
+```
+
+#### 3. En modell med huskarakteristika, dist_CBD, EHD indeks
+
+```{r}
+mod1 <- KC_husdata "price ~ bedrooms + bathrooms + sqft_living + sqft_living15 + sqft_lot + sqft_lot15 + sqft_above + floors + grade + yr_built + yr_renovated + waterfront + condition + view + dist_cbd_km + EHD_percen + low + high + year_month"
+```
+
+#### (eventuelt inntektsvariabel) og tids-dummier.
+
+```{r}
+mod2 <- KC_husdata "price ~ bedrooms + bathrooms + sqft_living + sqft_living15 + sqft_lot + sqft_lot15 + sqft_above + floors + grade + yr_built + yr_renovated + waterfront + condition + view + income + low + mid + high + year_month"
+```
+
+```{r}
+
+```
 
 iii\. Rapporter de tre modellen i en regresjonstabell (se eksemplet
 
