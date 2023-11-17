@@ -12,10 +12,6 @@ number-sections: true
 papersize: a4
 ---
 
-title: Innlevering MSB205 author: Maren Sognefest og Mona Lisa Jones Affiliation: HVL email: 152148\@stud.hvl.no & xxxxxx\@stud.hvl.no bibliography: Mittbibliotek.bib bib-humanities: true nocite: lang: no-NB fontsize: 12pt linestretch: 1.5 output: html_notebook: default pdf_document: default word_document: default html_document: df_print: paged
-
-csl: apa-no-ampersand
-
 ```{r}
 #| label: setup
 #| message: false
