@@ -3,13 +3,15 @@ title: "Hedonic House Prisce Model King County"
 author: "Sognefest & Jones (2023)"
 date: "Innleveringsfrist: 20.11.2023"
 format: pdf
-abstract: "The Hedonic Houseprice model with maps....."
+abstract: "Denne oppgaven bruker hedoniske prismodeller for å analysere boligmarkedet i King County. Prosjektet inkluderer en detaljert analyse med bruk av forskjellige datasett og avanserte statistiske og romlige teknikker. "
 editor: visual
 bibliography: [King_county.bib]
 output-file: Msb205.qmd
 page-layout: full
 number-sections: true
 papersize: a4
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r}
@@ -27,9 +29,20 @@ library(spData)
 library(huxtable)
 library(knitr)
 library(foreign)
+library(spdep)
 ```
 
-## Oppgave 1
+# Innledning
+
+I denne studien tar vi for oss boligmarkedet i King County ved hjelp av hedoniske prismodeller, med et spesielt fokus på anvendelsen av spatial økonometri. Vår tilnærming innebærer en detaljert utforskning av hvordan ulike faktorer, både fysiske og lokasjonsbaserte, bidrar til å forme priser på eiendommer. Gjennom en kombinasjon av varierte datasett og avanserte teknikker innen spatial økonometri, sikter vi mot å avdekke de komplekse romlige dynamikkene som driver boligprisene i dette området.
+
+Kjernen i vårt datasett består av data om individuelle boliger i King County, inkludert elementer som salgsdato, pris, antall soverom og bad, total størrelse, antall etasjer, utsikt, og tilstedeværelsen av vannfront. Disse attributtene gir oss innsikt i boligenes fysiske og estetiske kvaliteter. Viktigere, vi integrerer nøyaktige geografiske koordinater for hver eiendom, noe som muliggjør beregning av avstander til sentrale forretningsdistrikter (CBD) og andre nøkkelpunkter. Denne romlige komponenten er avgjørende for å forstå hvordan lokasjon påvirker boligverdier.
+
+Videre beriker vi vår analyse med demografisk og økonomisk informasjon, som inntektsnivåer og etnisk sammensetning i boligenes nabolag. Denne tilnærmingen tillater oss å utforske hvordan sosioøkonomiske forhold i et område påvirker boligpriser og dermed gi en mer helhetlig forståelse av markedet.
+
+Ved å anvende metoder innen spatial økonometri, inkludert undersøkelse av romlig autokorrelasjon og bruk av romlige regresjonsmodeller, vil vi identifisere og analysere romlige mønstre og sammenhenger. Denne tilnærmingen er essensiell for å adressere potensielle romlige avhengigheter og heterogenitet i dataene, som er kritisk i boligprisstudier. Vi forventer at denne analytiske tilnærmingen vil avsløre dyptgående innsikter i de romlige mekanismene som påvirker boligpriser i King County, og hvordan disse mekanismene interagerer med boligenes fysiske og sosioøkonomiske karakteristikker.
+
+## 1. Raw data
 
 ```{r Oppgave 1}
 kc_house_data <- read.csv("./Data/kc_house_data.csv")
@@ -98,7 +111,7 @@ kc_house_data_sf <- kc_house_data_sf %>%
 # kc_house_data_sf$dest_CBD <- avstand_til_cbd_km #inn i datasett
 ```
 
-## 
+Utfører romlige koblinger og beregner avstander til sentrale forretningsdistrikter (CBD), som er sentralt i hedoniske prisanalyser.
 
 ```{r}
 rm(cbd, cbd_sf, kc_house_data) #fjerne unødvendige datasett
@@ -112,7 +125,7 @@ kc_house_data_oppg1 <- kc_house_data_sf #endre ferdig datasett til "kc_house_dat
 rm(kc_house_data_sf) #fjerne 
 ```
 
-## Oppgave 2
+## 2. Demografi
 
 ```{r Laste inn shp-fil}
 #Last ned WADOH Environmental Health Disparities Index Calculated for King County. 
@@ -151,7 +164,7 @@ WADOH_King_County <- WADOH_King_County %>%
 WADOH_King_County <- st_transform(WADOH_King_County, 2926)
 ```
 
-# Inntekt i WADOH K_C
+### Inntekt i WADOH K_C
 
 ```{r Legge inn datasett. Dette fikk jeg ikke lastet ned som dbf-fil}
 #acs_b19101_familyincome <- read.csv("Data\acs_b19101_familyincome.csv")
@@ -178,7 +191,7 @@ acs_b19101_familyincome <- acs_b19101_familyincome %>%
     select(GEOIDTRT, low, mid, high) 
 ```
 
-## Etnisitet i WADOH K_C
+### Etnisitet i WADOH K_C
 
 ```{r}
 #Legge inn datasett etnisitet. 
@@ -213,7 +226,7 @@ acs_b02001_race <- acs_b02001_race %>%
   select(GEOID:TRACTLABEL, andel_hvit_alene:andel_blandet)
 ```
 
-## Husdata; spatial join (opg 3)
+## 3. Husdata; spatial join
 
 ```{r Laste ned kart}
 kc_house_data_oppg1 <- st_join(kc_house_data_oppg1, WADOH_King_County)
@@ -249,14 +262,199 @@ KC_husdata <- kc_house_data_oppg1
 st_write(KC_husdata, "KC_husdata.gpkg", append = FALSE)
 ```
 
-## 4. EDA i GeoDA
+# EDA i GeoDA
+
+Spatial EDA (Exploratory Data Analysis) er en viktig prosess i geografisk og romlig analyse som hjelper til med å forstå mønstre, forhold, og tendenser i geografiske data. Denne tilnærmingen er spesielt relevant i felt som urban planlegging, miljøvitenskap, epidemiologi og, som i ditt tilfelle, i analyse av boligmarkedet.
 
 #### I) Lag et nytt prosjekt i GeoDA
 
+Bruken av GeoDA for EDA og videre modellanalyse vil gi verdifull innsikt i de romlige egenskapene til dataene våre.
+
 #### II) Last inn husdataene via .gpkg filen lagret overnfor
+
+Den hedoniske huspis modellen, inkludert OLS og flere romlige regresjonsmodeller, er en solid tilnærming for å forstå de underliggende driverne av boligpriser[@chi2020].
 
 #### III) Generer en vekt fil utfra 3 og 10 nærmeste nabo
 
+K-nærmeste naboer (k-NN) er en teknikk i romlig analyse som brukes til å definere nabolagsstrukturer basert på geografiske enheter, som foreslått av [@chi2020]. Denne metoden identifiserer et forhåndsbestemt antall ('k') nærmeste naboer for hver observasjon, basert på avstander mellom punkter. @anselin1988 fremhever at k-NN tilbyr en løsning på utfordringen med avstandsbaserte vektmatriser, som ofte produserer for mange naboer i urbane områder og for få i landlige områder. Ifølge @altman1992, fungerer k-NN ved å finne et sett med de nærmeste naboene til et gitt datapunkt og deretter estimere en verdi for dette punktet basert på naboene. Dette prinsippet støttes av ideen om at observasjoner som er nærmere hverandre geografisk, sannsynligvis vil være mer like i deres avhengige variabler. K-NN-teknikken anses som spesielt nyttig i romlige analyser der avstand spiller en nøkkelrolle, som i klyngedannelse, romlig interpolering eller romlig regresjon. @altman1992 diskuterer også hvordan valg av 'k' påvirker modellens ytelse, inkludert forventningsskjevhet og varians.
+
 #### IV) Prøv å finne ut hvor de små og dyre, de store og dyre, de billige og store og de små og billige boligene ligger (prøv Bivariate Morans I)
 
+Bivariate Moran's I er en statistisk metode brukt for å måle romlig autokorrelasjon mellom to forskjellige variabler over en geografisk region. Dette er en utvidelse av den mer tradisjonelle Moran's I, som
+vanligvis brukes for å måle romlig autokorrelasjon for en enkelt variabel. Bivariate Moran's I hjelper med å forstå om det er et romlig mønster i hvordan to variabler relaterer seg til hverandre over et geografisk område.
+
 #### V) Dere kan evt også eksprementere med SAR, SEM, og lm modeller i GeoDA
+
+## 5. Returner så til Quarto dokumentet.
+
+i\. Gi en kort sammenfatning av funnene fra EDA.
+
+ii\. Definer mint tre hedonske modeller. Ta utgangspunkt i Bishop et
+
+al. (2020) og diskuter gjerne valgte modeller utfra denne.
+
+1\. En null modell med bare huskarakteristika og tids-dummier
+
+(year_month)
+
+2\. En modell med huskarakteristika, dist_CBD, relevante tract-
+
+variabler og tids-dummier.
+
+3\. En modell med huskarakteristika, dist_CBD, EHD indeks
+
+(eventuelt inntektsvariabel) og tids-dummier.
+
+iii\. Rapporter de tre modellen i en regresjonstabell (se eksemplet
+
+med modelsummary() og flextable ovenfor). Bruk robuste
+
+standard errors. Rapporter t-verdien som er det vanligste innen
+
+økonometri.
+
+iv\. Test og diskuter hvilken modell som er best. (Ta gjerne også en
+
+titt på plot(\<lm_navnet\>))
+
+## 6. Bruk en simultan test på tids-dummiene
+
+for å avgjøre om vi
+
+trenger disse i modellen (car::linearHypothesis()) med opsjonen
+
+white_adjust = "hc3" eller "hc4" eller også eventuelt "hc1" hvis dere
+
+ønsker å bruke Stata sin default.
+
+## 7. Spatial Regressions
+
+i\. Last gruppens utvalg fra relevant .gpkg fil (tallene er seed
+
+verdiene som er brukt for å genererer utvalgene)
+
+ii\. Legg områdevariablene til det reduserte datasettet.
+
+iii\. Formuler modellen dere vil bruke. Kjør den som lm (OLS) modell
+
+### Hedonic House Prise model
+
+Den hedoniske prisfunksjonen kan brukes for å bestemme hvor mye mer som må betales for en eiendom med en ekstra enhet av en bestemt boligkarakteristikk [@day2001]. Dette er kjent som den implisitte prisen for en eiendomsegenskap; implisitt fordi den marginale prisen på en egenskap indirekte avsløres gjennom de beløp husholdninger er forberedt på å betale for hele eiendommen, der den spesielle egenskapen bare er en del [@day2001].
+
+I hedoniske markeder kan prisen betalt for ekstra av en egenskap delvis avhenge av nivået på tilbudet av den egenskapen [@day2001]. For eksempel kan den implisitte prisen for ekstra "fred og ro" være høy hvis en eiendom er i et veldig støyende område og relativt lav hvis eiendommen er i et fredelig område [@day2001]. Den hedoniske prisfunksjonen brukes for å bestemme den implisitte prisfunksjonen som beskriver beløpet betalt for ekstra av en eiendomsegenskap, som en funksjon av nivået på tilbudet av den egenskapen og nivået på tilbudet av andre eiendomsegenskaper [@day2001].
+
+### OLS Modellen
+
+Den ordinære minste kvadraters (OLS) regresjonsmodellen brukes ofte til å estimere hedoniske prismodeller innen boligøkonomi. I praksis er OLS-modellen i en hedonisk priskontekst et utgangspunkt for å forstå hvordan ulike boligattributter verdsettes i markedet. Den gir et grunnleggende rammeverk for analysen, som kan utvides med mer sofistikerte romlige økonometriske teknikker for å fange opp kompleksiteten i eiendomsmarkedene.
+
+**Forutsetninger**
+
+1\. Regresjonsmodellen er lineær i parametrene (β0, β1, β3, osv.).
+
+2\. Feilleddet har en gjennomsnittsverdi på null.
+
+3\. Alle uavhengige variabler er ukorrelerte med feilene.
+
+4\. Feilene har en konstant varians (homoskedastisitet) og er ikke korrelerte med hverandre.
+
+5\. Ingen av forklaringsvariablene i flervariabelregresjonen er en perfekt lineær funksjon av andre forklaringsvariabler (ingen perfekt multikollinearitet).
+
+6\. Feilleddet er normalfordelt.
+
+En romlig OLS-regresjonsmodell med flere uavhengige variabler kan være representert ved følgende utvidet formel:
+
+"Y = β0 + β1X1 + β2X2 + ... + βnXn + ε"
+
+hvor:
+
+Y er den avhengige variabelen (for eksempel boligpriser).
+
+β0 er konstantleddet eller intercepten i modellen.
+
+-β1, β2, \..., βn er de ukjente parametrene (koeffisientene) som måler effekten av hver uavhengig variabel på Y .
+
+X1, X2, ..., Xn er de uavhengige variablene som kan omfatte husets størrelse, antall soverom, nærhet til fasiliteter, og andre faktorer som antas å påvirke boligprisen.
+
+ε er feilleddet som representerer tilfeldige avvik fra regresjonslinjen.
+
+I en romlig kontekst må vi også vurdere mulig romlig avhengighet, hvor verdien av Y for en observasjon kan være korrelert med verdier av Y for naboopplevelser i geografisk rom. Dette kan håndteres ved å inkludere et romlig lag i modellen eller ved å justere standardfeilene for å ta hensyn til romlig autokorrelasjon.
+
+```{r}
+model <- lm(formula, KC_husdata)
+```
+
+```{r}
+
+```
+
+For å teste for og håndtere romlig autokorrelasjon i en OLS-modell, kan man bruke diagnostiske tester som Moran's I på residualene. Hvis testene indikerer romlig autokorrelasjon, må man kanskje gå over til en spesifikk romlig regresjonsmodell som passer dataene bedre.
+
+**og bruk lm.morantest() og moran.plot() på residualene for å**
+
+**avgjøre om vi har uforklarte spatial effects i residualene.**
+
+**iv. Modellen skal inneholde områdevariablene familie inntekt og**
+
+**variabelen som angir etnisitet (rase).**
+
+**v. Generer vektmatrise ut fra k=3 og k=10 nærmeste naboer**
+
+**vi. Bruk Anselin (1988) sin teknikk med Lagrange Multiplikator test**
+
+**vha. lm.LMtests() og diskuter hvilken modell (SAR, SEM eller**
+
+**lm (OLS)) som synes å være den beste.**
+
+**vii. Bruk så teknikken med nestede modeller anbefalt av LeSage**
+
+**(n.d.). Diskuter først om vi står overfor et lokalt eller**
+
+**globalt fenomen. Bruk opsjonen durban = as.formula(\~**
+
+**variabelnavnene du vil ha impacts for). Dette for å slippe**
+
+**impacts for tidsdummiene. Test så de nestede modellne vha.**
+
+**likelihood ratio test. Hvilken modell synes å være den beste?**
+
+**viii. For alternativet k=10 (10 nærmeste naboer). Bruk moran.plot()**
+
+**på residualene fra de ulike modellene for å illustrere hvor godt**
+
+**hver modell fjerner «spatial effects» fra residualene.**
+
+# Diskusjon av resultatene
+
+i\. In this exercise you have estimated several hedonic price functions.
+
+What is the economic interpretation of the hedonic house price
+
+model? Use a graphical presentation in our answer.
+
+ii\. You have estimated an OLS model, a spatial error model (SEM),
+
+a spatial lag model (SAR), a SLX model and a spatial Durbin
+
+Error Model (SDEM). In each of these models you shall interpret
+
+the estimated coefficients. You can use two estimated coefficients
+
+in each model for this task. What we are interested in is the
+
+economic content of coefficients in view of the hedonic theory.
+
+iii\. Are the estimated coefficients you have chosen to study in each
+
+model significant and reasonable regarding sign and size?
+
+iv\. For the SAR model, you must use the estimated impacts to get
+
+a measure of the implicit prices.
+
+v\. Use two estimated impacts (direct, indirect, and total impacts
+
+related to each variable), and give an economic interpretation of
+
+these impacts.
+
+# Oppsummering/konklusjon
