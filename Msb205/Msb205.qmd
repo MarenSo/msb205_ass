@@ -280,8 +280,7 @@ K-nærmeste naboer (k-NN) er en teknikk i romlig analyse som brukes til å defin
 
 #### IV) Prøv å finne ut hvor de små og dyre, de store og dyre, de billige og store og de små og billige boligene ligger (prøv Bivariate Morans I)
 
-Bivariate Moran's I er en statistisk metode brukt for å måle romlig autokorrelasjon mellom to forskjellige variabler over en geografisk region. Dette er en utvidelse av den mer tradisjonelle Moran's I, som
-vanligvis brukes for å måle romlig autokorrelasjon for en enkelt variabel. Bivariate Moran's I hjelper med å forstå om det er et romlig mønster i hvordan to variabler relaterer seg til hverandre over et geografisk område.
+Bivariate Moran's I er en statistisk metode brukt for å måle romlig autokorrelasjon mellom to forskjellige variabler over en geografisk region. Dette er en utvidelse av den mer tradisjonelle Moran's I, som vanligvis brukes for å måle romlig autokorrelasjon for en enkelt variabel. Bivariate Moran's I hjelper med å forstå om det er et romlig mønster i hvordan to variabler relaterer seg til hverandre over et geografisk område.
 
 #### V) Dere kan evt også eksprementere med SAR, SEM, og lm modeller i GeoDA
 
