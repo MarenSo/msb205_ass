@@ -45,7 +45,8 @@ Ved å anvende metoder innen spatial økonometri, inkludert undersøkelse av rom
 ## 1. Raw data
 
 ```{r Oppgave 1}
-kc_house_data <- read.csv("./Data/kc_house_data.csv")
+kc_house_data <- read.csv(Msb205/Data/kc_house_data.csv)
+
 ```
 
 ```{r}
@@ -296,10 +297,6 @@ al. (2020) og diskuter gjerne valgte modeller utfra denne.
 
 #### 1. En null modell med bare huskarakteristika og tids-dummier (year_month)
 
-#### 2. En modell med huskarakteristika, dist_CBD, relevante tract-
-
-#### variabler og tids-dummier.
-
 ```{r}
 hedon1 %>% 
     linearHypothesis(c("year_month2014-06=0", "year_month2014-07=0",
@@ -333,25 +330,29 @@ hedon3 %>%
                      white_adjust = hc1)
 ```
 
+#### 2. En modell med huskarakteristika, dist_CBD, relevante tract-
+
+#### variabler og tids-dummier.
+
+```{r}
+# Create the second multiple regression model
+mod2 <- lm(price ~ bedrooms + bathrooms + sqft_living + sqft_living15 + sqft_lot + sqft_lot15 + sqft_above + floors + grade + yr_built + yr_renovated + waterfront + condition + view + income + low + mid + high + year_month, data = KC_husdata)
+
+# Print a summary of the second model
+summary(mod2)
+```
+
 #### 3. En modell med huskarakteristika, dist_CBD, EHD indeks
 
 ```{r}
-model <- lm(price ~ bedrooms + bathrooms + sqft_living + sqft_living15 + sqft_lot + sqft_lot15 + sqft_above + floors + grade + yr_built + yr_renovated + waterfront + condition + view + dist_cbd_km + EHD_percen + low + high + year_month, data = KC_husdata)
+mod3 <- lm(price ~ bedrooms + bathrooms + sqft_living + sqft_living15 + sqft_lot + sqft_lot15 + sqft_above + floors + grade + yr_built + yr_renovated + waterfront + condition + view + dist_cbd_km + EHD_percen + low + high + year_month, data = KC_husdata)
 
 # Print a summary of the model
-summary(model)
+summary(mode3)
 
 ```
 
 #### (eventuelt inntektsvariabel) og tids-dummier.
-
-```{r}
-mod2 <- KC_husdata "price ~ bedrooms + bathrooms + sqft_living + sqft_living15 + sqft_lot + sqft_lot15 + sqft_above + floors + grade + yr_built + yr_renovated + waterfront + condition + view + income + low + mid + high + year_month"
-```
-
-```{r}
-
-```
 
 iii\. Rapporter de tre modellen i en regresjonstabell (se eksemplet
 
@@ -374,16 +375,6 @@ trenger disse i modellen (car::linearHypothesis()) med opsjonen
 white_adjust = "hc3" eller "hc4" eller også eventuelt "hc1" hvis dere
 
 ønsker å bruke Stata sin default.
-
-## 7. Spatial Regressions
-
-i\. Last gruppens utvalg fra relevant .gpkg fil (tallene er seed
-
-verdiene som er brukt for å genererer utvalgene)
-
-ii\. Legg områdevariablene til det reduserte datasettet.
-
-iii\. Formuler modellen dere vil bruke. Kjør den som lm (OLS) modell
 
 ### Hedonic House Prise model
 
@@ -426,6 +417,16 @@ X1, X2, ..., Xn er de uavhengige variablene som kan omfatte husets størrelse, a
 ε er feilleddet som representerer tilfeldige avvik fra regresjonslinjen.
 
 I en romlig kontekst må vi også vurdere mulig romlig avhengighet, hvor verdien av Y for en observasjon kan være korrelert med verdier av Y for naboopplevelser i geografisk rom. Dette kan håndteres ved å inkludere et romlig lag i modellen eller ved å justere standardfeilene for å ta hensyn til romlig autokorrelasjon.
+
+## 7. Spatial Regressions
+
+i\. Last gruppens utvalg fra relevant .gpkg fil (tallene er seed
+
+verdiene som er brukt for å genererer utvalgene)
+
+ii\. Legg områdevariablene til det reduserte datasettet.
+
+iii\. Formuler modellen dere vil bruke. Kjør den som lm (OLS) modell
 
 ```{r}
 model <- lm(formula, KC_husdata)
