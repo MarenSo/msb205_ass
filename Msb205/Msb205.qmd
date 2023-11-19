@@ -336,7 +336,11 @@ hedon3 %>%
 #### 3. En modell med huskarakteristika, dist_CBD, EHD indeks
 
 ```{r}
-mod1 <- KC_husdata "price ~ bedrooms + bathrooms + sqft_living + sqft_living15 + sqft_lot + sqft_lot15 + sqft_above + floors + grade + yr_built + yr_renovated + waterfront + condition + view + dist_cbd_km + EHD_percen + low + high + year_month"
+model <- lm(price ~ bedrooms + bathrooms + sqft_living + sqft_living15 + sqft_lot + sqft_lot15 + sqft_above + floors + grade + yr_built + yr_renovated + waterfront + condition + view + dist_cbd_km + EHD_percen + low + high + year_month, data = KC_husdata)
+
+# Print a summary of the model
+summary(model)
+
 ```
 
 #### (eventuelt inntektsvariabel) og tids-dummier.
