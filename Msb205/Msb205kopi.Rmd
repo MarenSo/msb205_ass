@@ -14,6 +14,8 @@ papersize: a4
 ---
 
 ```{r}
+#| label: setup
+#| message: false
 library(dplyr)
 library(sf)
 library(Jmisc)
@@ -37,21 +39,49 @@ kc_house_data$date <- lubridate::ymd_hms(kc_house_data$date) #lager datoobjekt
 kc_house_data <- kc_house_data %>%
   mutate(year = year(date),
          month = month(date),
-         day = day(date)) %>% #nye variabler for date, month, year
-  arrange(desc(date)) %>% ##sortere datasett basert på dato
-  distinct(id, .keep_all = TRUE) #behold bare siste salg
-kc_house_data_sf <- st_as_sf(kc_house_data, coords = c("long", "lat"), crs = 4326) #Bruk st_as_sf() til å konvertere house data til et sf objekt vha. long lat og sett til geografisk projeksjon, dvs EPSG:4326.
-kc_house_data_sf <- st_transform(kc_house_data_sf, 2926) #endre til EPSG:2926
+         #nye variabler for date, month, year
+         day = day(date)
+         ) %>% 
+  ##sortere datasett basert på dato
+  arrange(desc(date)) %>% 
+  #behold bare siste salg
+  distinct(id, .keep_all = TRUE) 
 ```
 
-```{r Oppgave 1 - videre, cbd}
-#Bruk koordinatene fra Seattles wikipedia-side (øvre høyre hjørne, klikk linken så får dere koordinatene i desimalform) og sett dette punktet som CBD for Seattle.
-cbd <- data.frame(long = -122.333056, lat = 47.609722) #datasett med koordinatene
-  cbd_sf <- st_as_sf(cbd, coords = c("long", "lat"), crs = 4326) #til sf
-cbd_sf <- st_transform(cbd_sf, 2926) #til ESPG 2926
+```{r}
+kc_house_data_sf <- kc_house_data |> 
+  #Bruk st_as_sf() til å konvertere house data til 
+  # et sf objekt vha. long lat og sett til geografisk 
+  # projeksjon, dvs EPSG:4326.
+  st_as_sf(
+    coords = c("long", "lat"), 
+    crs = 4326
+    ) |> 
+  #endre til EPSG:2926
+  st_transform(2926)
 ```
 
-```{r rydde datasett og få avstand CBD inn i originaldatasett}
+Bruk koordinatene fra Seattles wikipedia-side (øvre høyre hjørne, klikk linken så får dere koordinatene i desimalform) og sett dette punktet som CBD for Seattle.
+
+```{r}
+#| label: Oppgave 1 - videre, cbd
+# datasett med koordinatene
+cbd <- data.frame(long = -122.333056, lat = 47.609722) 
+```
+
+```{r}
+cbd_sf <- cbd |> 
+  # til sf
+  st_as_sf(
+    coords = c("long", "lat"), 
+    crs = 4326
+    ) |> 
+  # til ESPG 2926
+  st_transform(2926) 
+```
+
+```{r}
+#| label: avstand til CBD
 kc_house_data_sf <- kc_house_data_sf %>% select(-starts_with("geometry."), -starts_with("avstand_til_cbd.."), -starts_with("distance_cbd"))
 
 #Konverter dette punktet til EPSG:2926. Finn avstanden mellom dette punktet og samtlige hus i datasettet i luftlinje. Konverter avstandene til km og legg dem i variabelen dest_CBD i kartet med husdata.
@@ -102,15 +132,39 @@ kc_wadoh_map <- WADOH_King_County %>%
 
 ```{r}
 #Transponer kartet til projeksjonen EPSG:2926
-kc_wadoh_map<- st_transform(kc_wadoh_map, 2926)
-WADOH_King_County <- st_transform(WADOH_King_County, 2926)
+# Denne trengs ikke (ALLE variablene)
+# WADOH_King_County <- st_transform(WADOH_King_County, 2926)
+# Denne inneholder variablene vi trenger
+kc_wadoh_map <- st_transform(kc_wadoh_map, 2926)
+```
+
+Bruker en spatial join for å legge områdevariablene til husvariablene.
+Hvert hus får verdier utfra hvilket område de ligger i.
+I tillegg får vi med område (tract) variabelen slik at det blir enkelt å legg til familieinntekt og rase variablene.
+
+```{r}
+kc_house_data_oppg1 <- kc_house_data_oppg1 |> 
+  st_join(kc_wadoh_map)
 ```
 
 ## Inntekt i WADOH_K_C
 
-```{r Legge inn datasett. Dette fikk jeg ikke lastet ned som dbf-fil}
-acs_b19101_familyincome <- read.csv("acs_b19101_familyincome.csv")
+Dette ordnet vi vel opp i på fredag.
+Skjønner ikke hvorfor dere insisterer på å bruke disse .csv filene av ukjent opphav.
+Oppgaveteksten forklarer hvor dere kan laste ned census-dataene.
+Når dere pakker ut denne .zip filen får dere en mappe kalt censusSHP.
+Jeg har laget en slik mappe nå i mappen Data og lagt inn filene dere trenger.
+
+```{r}
+#|  label: Legge inn datasett. 
+#  Dette fikk jeg ikke lastet ned som dbf-fil
+# Se nedenfor
+#acs_b19101_familyincome <- read.csv("acs_b19101_familyincome.csv")
 #view(acs_b19101_familyincome)
+acs_b19101_familyincome <- read.dbf(
+  file = "Data/censusSHP/acs_b19101_familyincome.dbf",
+  as.is = TRUE
+)
 ```
 
 ```{r endre inntektsvariabler}
@@ -124,26 +178,26 @@ acs_b19101_familyincome <- read.csv("acs_b19101_familyincome.csv")
 
 ```{r}
 #Select income groups, 
-asc_b19101_familyincome <- acs_b19101_familyincome %>% 
-    select(GEO_ID_TRT, low, mid, high) 
-```
-
-```{r}
-acs_b19101_familyincome$GEO_ID_TRT <- as.character(acs_b19101_familyincome$GEO_ID_TRT) #må være samme type
+acs_b19101_familyincome <- acs_b19101_familyincome %>% 
+    select(GEOIDTRT, low, mid, high) 
 ```
 
 ## Etnisitet i WADOH K_C
 
 ```{r}
-library(readr)
-acs_b02001_race <- read_csv("acs_b02001_race.csv")
-
+# Hvorfor leser dere inn denne? 
+#acs_b02001_race <- read_csv("acs_b02001_race.csv")
 #View(acs_b02001_race)
+acs_b02001_race <- read.dbf(
+  file = "Data/censusSHP/acs_b02001_race.dbf",
+  as.is = TRUE
+)
 ```
 
 ```{r endre etnisitet-variabler}
 acs_b02001_race <- acs_b02001_race %>%
-  select(-starts_with("M")) %>% #fjerner M-variabler
+  #fjerner M-variabler
+  select(-starts_with("M")) %>% 
   mutate(
     total = E02001001,
     hvit_alene = E02001002,
@@ -154,7 +208,8 @@ acs_b02001_race <- acs_b02001_race %>%
   )
 ```
 
-```{r Lage andel-variabler}
+```{r}
+#| label:  Lage andel-variabler
 acs_b02001_race <- acs_b02001_race %>%
   mutate(
     andel_hvit_alene = hvit_alene / total * 100,
@@ -163,6 +218,21 @@ acs_b02001_race <- acs_b02001_race %>%
     andel_andre_alene = andre_alene / total * 100,
     andel_blandet = blandet / total * 100
   )
+```
+
+Da er familieinntekt og rase variabelen klar.
+Disse må legges til kc_house_data_oppg1 som inneholder husdata og område (tract) variabler.
+kc_house_data_oppg1 har nå også variabelen GEO_IDTRT som vi fikk fra spatial join med kc_wadoh_map.
+Gjør det enkelt å legge til familieinntekt og rase data.
+Eneste vi må huske er at tract variabelen heter GEOIDTRT i disse filene.
+
+```{r}
+#kc_house_data_oppg1 
+
+tmp <- kc_house_data_oppg1 |> 
+  # trenger ikke å gjøre en spatial join siden vi har tract ID
+  left_join(acs_b02001_race, join_by(GEO_ID_TRT == GEOIDTRT)) |>
+  left_join(acs_b19101_familyincome, join_by(GEO_ID_TRT == GEOIDTRT)) 
 ```
 
 ```{r Laste ned kart}
@@ -174,7 +244,8 @@ tracts10 <- st_read(file_path2) #Les inn .shp-filen.
 ```{r etnisitet inn i WADOH_K_C}
 acs_b02001_race$GEO_ID_TRT <- as.character(acs_b02001_race$GEO_ID_TRT) #til character
 WADOH_King_County <- WADOH_King_County %>%
-  left_join(acs_b02001_race, by = "GEO_ID_TRT")
+  # GEO_ID_TRT er tract name i 
+  left_join(acs_b02001_race, join_by(GEO_ID_TRT ==  )
 ```
 
 ```{r Sjekk områdevariablene fra WADOH vha. summary for tracts10}
@@ -220,7 +291,7 @@ WADOH_KC_income <- WADOH_King_County %>%
   left_join(acs_b19101_familyincome, by = "GEO_ID_TRT")
 ```
 
-#### III) 
+#### III)
 
 ```{r}
 # Renaming the Date column to year_month
