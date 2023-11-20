@@ -11,9 +11,7 @@ number-sections: true
 papersize: a4
 ---
 
-
-editor_options: 
-  chunk_output_type: console
+editor_options: chunk_output_type: console
 
 ```{r}
 #| label: setup
@@ -282,31 +280,31 @@ Bivariate Moran's I er en statistisk metode brukt for å måle romlig autokorrel
 
 **3 narmeste naboer**
 
-![](Data/img/Skjermbilde 2023-11-20 094933.png)
+![](Data/img/Skjermbilde%202023-11-20%20094933.png)
 
-![](Data/img/Skjermbilde 2023-11-20 095031.png)
+![](Data/img/Skjermbilde%202023-11-20%20095031.png)
 
-![](Data/img/Skjermbilde 2023-11-20 095117.png)
+![](Data/img/Skjermbilde%202023-11-20%20095117.png)
 
 ![]()
 
-![](Data/img/Skjermbilde 2023-11-20 095434.png)
+![](Data/img/Skjermbilde%202023-11-20%20095434.png)
 
 **10 nærmeste naboer**
 
-![](Data/img/Skjermbilde 2023-11-20 100029.png)
+![](Data/img/Skjermbilde%202023-11-20%20100029.png)
 
-![](Data/img/Skjermbilde 2023-11-20 100053.png)
+![](Data/img/Skjermbilde%202023-11-20%20100053.png)
 
-![](Data/img/Skjermbilde 2023-11-20 100120.png)
+![](Data/img/Skjermbilde%202023-11-20%20100120.png)
 
-![](Data/img/Skjermbilde 2023-11-20 100137.png)
+![](Data/img/Skjermbilde%202023-11-20%20100137.png)
 
-![](Data/img/Skjermbilde 2023-11-20 100151.png)
+![](Data/img/Skjermbilde%202023-11-20%20100151.png)
 
-![](Data/img/Skjermbilde 2023-11-20 100208.png)
+![](Data/img/Skjermbilde%202023-11-20%20100208.png)
 
-![](Data/img/Skjermbilde 2023-11-20 100232.png)
+![](Data/img/Skjermbilde%202023-11-20%20100232.png)
 
 #### V) Dere kan evt også eksprementere med SAR, SEM, og lm modeller i GeoDA
 
@@ -329,7 +327,6 @@ KC_husdata <- KC_husdata |>
   filter(!is.na(EHD_percen))
 ```
 
-
 ```{r}
 hedon1 <- "log(price) ~ year_month + log(sqft_living) + log(sqft_lot) + log(andel_svart_alene) + log(traffic_pe) + waterfront + view"
 ```
@@ -337,7 +334,6 @@ hedon1 <- "log(price) ~ year_month + log(sqft_living) + log(sqft_lot) + log(ande
 ```{r}
 lm_hedon1 <- lm(hedon1, KC_husdata)
 ```
-
 
 ```{r}
 #| eval: false
