@@ -11,9 +11,7 @@ number-sections: true
 papersize: a4
 ---
 
-
-editor_options: 
-  chunk_output_type: console
+editor_options: chunk_output_type: console
 
 ```{r}
 #| label: setup
@@ -282,53 +280,56 @@ Bivariate Moran's I er en statistisk metode brukt for å måle romlig autokorrel
 
 **3 narmeste naboer**
 
-![](Data/img/Skjermbilde 2023-11-20 094933.png)
+![](Data/img/Skjermbilde%202023-11-20%20094933.png)
 
-![](Data/img/Skjermbilde 2023-11-20 095031.png)
+![](Data/img/Skjermbilde%202023-11-20%20095031.png)
 
-![](Data/img/Skjermbilde 2023-11-20 095117.png)
+![](Data/img/Skjermbilde%202023-11-20%20095117.png)
 
 ![]()
 
-![](Data/img/Skjermbilde 2023-11-20 095434.png)
+![](Data/img/Skjermbilde%202023-11-20%20095434.png)
 
 **10 nærmeste naboer**
 
-![](Data/img/Skjermbilde 2023-11-20 100029.png)
+![](Data/img/Skjermbilde%202023-11-20%20100029.png)
 
-![](Data/img/Skjermbilde 2023-11-20 100053.png)
+![](Data/img/Skjermbilde%202023-11-20%20100053.png)
 
-![](Data/img/Skjermbilde 2023-11-20 100120.png)
+![](Data/img/Skjermbilde%202023-11-20%20100120.png)
 
-![](Data/img/Skjermbilde 2023-11-20 100137.png)
+![](Data/img/Skjermbilde%202023-11-20%20100137.png)
 
-![](Data/img/Skjermbilde 2023-11-20 100151.png)
+![](Data/img/Skjermbilde%202023-11-20%20100151.png)
 
-![](Data/img/Skjermbilde 2023-11-20 100208.png)
+![](Data/img/Skjermbilde%202023-11-20%20100208.png)
 
-![](Data/img/Skjermbilde 2023-11-20 100232.png)
+![](Data/img/Skjermbilde%202023-11-20%20100232.png)
 
 #### V) Dere kan evt også eksprementere med SAR, SEM, og lm modeller i GeoDA
 
 ## 5. Returner så til Quarto dokumentet.
 
-i\. Gi en kort sammenfatning av funnene fra EDA.
+Funnene våre i GeoDa tyder på at de dyre boligene i King County i hovedsak ligger i den nordlige delen av regionen. Det er mange dyre boliger i Seattle og Bellevue. De dyre boligene ligger langs kysten. I sør og i rurale områder innover i landet er boligene billigere.
 
-ii\. Definer mint tre hedonske modeller.
+Vi bruker signifikanskart for å visualisere statistisk signifikans av prisvariabelen. I kartet beskriver fargen p-verdien for variabelen. Grå er ikke signifikant, og lys grønn betyr et signifikansnivå p = 0,05, mellomgrønn p-verdi 0,01 og mørk grå p-verdi på 0,001.  P-verdien forteller oss hvor sannsynlig det er at vi ville fått det observerte resultatet dersom nullhypotesen var sann. P = 0,05 betyr at det er 5% sannsynlighet for at det observerte er tilfeldig.\
 
-Ta utgangspunkt i Bishop et
+I våre data har vi 10362 punkter som ikke er signifikant, altså har en p-verdi på over 0,05%. I disse punektene er sannsynligheten for at boligprisene er tilfeldig høyere enn 5% og derfor kan ikke nullhypotesen (ingen sammenheng) forkastes. Det er ikke nok evidens til å si at det har statistisk signifikant effekt.
 
-al. (2020) og diskuter gjerne valgte modeller utfra denne.
+Vi har 3133 lysegrønne punkter, altså med signifikansnivå med p under 0,05.
+
+Vi har 3011 mellomgrønne punkter, som betyr at de har et signifikansnivå på under p=0,01.
+
+Vi har 4326 punkter som er mørkegrønne, dette betyr at disse punktene har et signifikansnivå på maks p=0,001. Det vil si at det er under 1% sannsynlighet for at disse prisene er tilfeldig. ii. Definer mint tre hedonske modeller.
 
 #### 1. En null modell med bare huskarakteristika og tids-dummier (year_month)
 
-Fjerner variabel med NA
+En enkel nullmodell som bare inkluderer husets karakteristikker og tidsdummier. Denne modellen kan brukes som en referansemodell for å sammenligne med mer komplekse modeller.
 
-```{r}
+```{r Fjerner variabel med NA}
 KC_husdata <- KC_husdata |> 
   filter(!is.na(EHD_percen))
 ```
-
 
 ```{r}
 hedon1 <- "log(price) ~ year_month + log(sqft_living) + log(sqft_lot) + log(andel_svart_alene) + log(traffic_pe) + waterfront + view"
@@ -337,7 +338,6 @@ hedon1 <- "log(price) ~ year_month + log(sqft_living) + log(sqft_lot) + log(ande
 ```{r}
 lm_hedon1 <- lm(hedon1, KC_husdata)
 ```
-
 
 ```{r}
 #| eval: false
@@ -375,9 +375,9 @@ hedon3 %>%
                      white_adjust = hc1)
 ```
 
-#### 2. En modell med huskarakteristika, dist_CBD, relevante tract-
+#### 2. En modell med huskarakteristika, dist_CBD, relevante tract-variabler og tids-dummier.
 
-#### variabler og tids-dummier.
+Denne modellen inkluderer også distansen til CBD (Central Business District) og relevante tract-variabler. Dette kan være nyttig for å undersøke hvordan avstanden til sentrum og andre lokale faktorer påvirker boligprisene.
 
 ```{r}
 KC_husdata <- KC_husdata %>% 
@@ -404,7 +404,9 @@ mod2 <- lm(price ~ bedrooms + bathrooms + sqft_living + sqft_living15 + sqft_lot
 summary(mod2)
 ```
 
-#### 3. En modell med huskarakteristika, dist_CBD, EHD indeks
+#### 3. En modell med huskarakteristika, dist_CBD, EHD indeks, (eventuelt inntektsvariabel) og tids-dummier.
+
+Den tredje modellen inkluderer også EHD-indeksen (Environmental Health Index) eller en inntektsvariabel. Dette kan være nyttig for å undersøke hvordan miljøkvalitet og inntekt påvirker boligprisene.
 
 ```{r}
 mod3 <- lm(price ~ bedrooms + bathrooms + sqft_living + sqft_living15 + sqft_lot + sqft_lot15 + sqft_above + floors + grade + yr_built + yr_renovated + waterfront + condition + view + dist_cbd_km + EHD_percen + low + high + year_month, data = KC_husdata)
@@ -414,7 +416,7 @@ summary(mode3)
 
 ```
 
-#### (eventuelt inntektsvariabel) og tids-dummier.
+#### 
 
 iii\. Rapporter de tre modellen i en regresjonstabell (se eksemplet
 
