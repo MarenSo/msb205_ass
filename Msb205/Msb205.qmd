@@ -6,7 +6,6 @@ format: pdf
 abstract: "Denne oppgaven bruker hedoniske prismodeller for å analysere boligmarkedet i King County. Prosjektet inkluderer en detaljert analyse med bruk av forskjellige datasett og avanserte statistiske og romlige teknikker. "
 editor: visual
 bibliography: [King_county.bib]
-output-file: Msb205.qmd
 page-layout: full
 number-sections: true
 papersize: a4
@@ -45,7 +44,7 @@ Ved å anvende metoder innen spatial økonometri, inkludert undersøkelse av rom
 ## 1. Raw data
 
 ```{r Oppgave 1}
-kc_house_data <- read.csv(Msb205/Data/kc_house_data.csv)
+kc_house_data <- read.csv("Msb205/Data/kc_house_data.csv")
 
 ```
 
