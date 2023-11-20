@@ -125,7 +125,7 @@ rm(kc_house_data_sf) #fjerne
 
 ```{r Laste inn shp-fil}
 #Last ned WADOH Environmental Health Disparities Index Calculated for King County. 
-file_path <- "Msb205/Data/WADOH_Environmental_Health_Disparities_Index_Calculated_for_King_County___wadohehdindex_area.shp"
+file_path <- "Data/WADOH_Environmental_Health_Disparities_Index_Calculated_for_King_County___wadohehdindex_area.shp"
 WADOH_King_County <- st_read(file_path) #Les inn .shp filen WADOH King County.
 ```
 
@@ -165,7 +165,7 @@ WADOH_King_County <- st_transform(WADOH_King_County, 2926)
 ```{r Legge inn datasett. Dette fikk jeg ikke lastet ned som dbf-fil}
 #acs_b19101_familyincome <- read.csv("Data\acs_b19101_familyincome.csv")
 acs_b19101_familyincome <- read.dbf(
-  "Msb205/Data/censusSHP/acs_b19101_familyincome.dbf"
+  "Data/censusSHP/acs_b19101_familyincome.dbf"
   )
 ```
 
@@ -193,7 +193,7 @@ acs_b19101_familyincome <- acs_b19101_familyincome %>%
 #Legge inn datasett etnisitet. 
 #acs_b02001_race <- read.csv("Data\acs_b02001_race.csv")
 acs_b02001_race <- read.dbf(
-  "Msb205/Data/censusSHP/acs_b02001_race.dbf"
+  "Data/censusSHP/acs_b02001_race.dbf"
   )
 ```
 
@@ -530,7 +530,7 @@ For å teste for og håndtere romlig autokorrelasjon i en OLS-modell, kan man br
 
 **hver modell fjerner «spatial effects» fra residualene.**
 
-# Diskusjon av resultatene
+# 8. Diskusjon av resultatene
 
 i\. En hedonisk boligprismodell er en form for regressjonsmodell som brukes for å estimere verdien av ulike egenskaper (attributter) som bidrar til den totale prisen på en bolig. Denne modellen antyder at prisen på en bolig er summen av prisen på dens individuelle egenskaper. For eksempel, kan en boligpris være summen av prisen på antall bad, beliggenhet, størrelse osv. Vi har problemer med at kodene ikke virker hos meg (Maren), men en grafisk fremstilling av en slik modell kan for eksempel vise boligprisen på y-aksen og de forskjellige egenskapene på x-aksen, med en linje som representerer den estimerte sammenhengen mellom egenskapene og boligprisen.
 
@@ -544,4 +544,4 @@ iv\. I SAR-modellen kan vi bruke de estimerte effektene for å få et mål på p
 
 v\. Estimerte effekter (direkte, indirekte og totale effekter) gir en økonomisk tolkning av hvordan endringer i en variabel vil påvirke boligprisen. Både direkte og gjennom effekten på andre variabler. For eksempel vil en direkte effekt av en økning i antall bad kan være en økning i boligprisen, mens en indirekte effekt kunne være at en økning i antall bad øker nabolagets snitt-boligpris, som da igjen vil øke prisen på boligen. Den totale effekten er summen av den direkte og indirekte effekten.
 
-# Oppsummering/konklusjon
+# 9. Oppsummering/konklusjon
