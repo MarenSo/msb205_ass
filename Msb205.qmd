@@ -9,9 +9,11 @@ bibliography: [King_county.bib]
 page-layout: full
 number-sections: true
 papersize: a4
+---
+
+
 editor_options: 
   chunk_output_type: console
----
 
 ```{r}
 #| label: setup
@@ -125,7 +127,7 @@ rm(kc_house_data_sf) #fjerne
 
 ```{r Laste inn shp-fil}
 #Last ned WADOH Environmental Health Disparities Index Calculated for King County. 
-file_path <- "Data/WADOH_Environmental_Health_Disparities_Index_Calculated_for_King_County___wadohehdindex_area.shp"
+file_path <- "Msb205/Data/WADOH_Environmental_Health_Disparities_Index_Calculated_for_King_County___wadohehdindex_area.shp"
 WADOH_King_County <- st_read(file_path) #Les inn .shp filen WADOH King County.
 ```
 
@@ -165,7 +167,7 @@ WADOH_King_County <- st_transform(WADOH_King_County, 2926)
 ```{r Legge inn datasett. Dette fikk jeg ikke lastet ned som dbf-fil}
 #acs_b19101_familyincome <- read.csv("Data\acs_b19101_familyincome.csv")
 acs_b19101_familyincome <- read.dbf(
-  "Data/censusSHP/acs_b19101_familyincome.dbf"
+  "Msb205/Data/censusSHP/acs_b19101_familyincome.dbf"
   )
 ```
 
@@ -193,7 +195,7 @@ acs_b19101_familyincome <- acs_b19101_familyincome %>%
 #Legge inn datasett etnisitet. 
 #acs_b02001_race <- read.csv("Data\acs_b02001_race.csv")
 acs_b02001_race <- read.dbf(
-  "Data/censusSHP/acs_b02001_race.dbf"
+  "Msb205/Data/censusSHP/acs_b02001_race.dbf"
   )
 ```
 
@@ -319,6 +321,23 @@ Ta utgangspunkt i Bishop et
 al. (2020) og diskuter gjerne valgte modeller utfra denne.
 
 #### 1. En null modell med bare huskarakteristika og tids-dummier (year_month)
+
+Fjerner variabel med NA
+
+```{r}
+KC_husdata <- KC_husdata |> 
+  filter(!is.na(EHD_percen))
+```
+
+
+```{r}
+hedon1 <- "log(price) ~ year_month + log(sqft_living) + log(sqft_lot) + log(andel_svart_alene) + log(traffic_pe) + waterfront + view"
+```
+
+```{r}
+lm_hedon1 <- lm(hedon1, KC_husdata)
+```
+
 
 ```{r}
 #| eval: false
