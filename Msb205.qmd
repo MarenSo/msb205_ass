@@ -29,6 +29,7 @@ library(huxtable)
 library(knitr)
 library(foreign)
 library(spdep)
+library(car)
 ```
 
 # Innledning
@@ -44,7 +45,7 @@ Ved å anvende metoder innen spatial økonometri, inkludert undersøkelse av rom
 ## 1. Raw data
 
 ```{r Oppgave 1}
-kc_house_data <- read.csv("Msb205/Data/kc_house_data.csv")
+kc_house_data <- read.csv("Data/kc_house_data.csv")
 
 ```
 
@@ -61,7 +62,8 @@ kc_house_data <- kc_house_data  |>
   #sortere datasett basert på dato
   arrange(desc(date))  |>  
   #behold bare siste salg
-  distinct(id, .keep_all = TRUE) 
+  #distinct(id, .keep_all = TRUE) 
+  distinct(paste(long, lat, sep = ""), .keep_all = TRUE)
 ```
 
 ```{r}
@@ -114,12 +116,6 @@ kc_house_data_sf <- kc_house_data_sf %>%
 Utfører romlige koblinger og beregner avstander til sentrale forretningsdistrikter (CBD), som er sentralt i hedoniske prisanalyser.
 
 ```{r}
-rm(cbd, cbd_sf, kc_house_data) #fjerne unødvendige datasett
-kc_house_data_oppg1 <- kc_house_data_sf #endre ferdig datasett til "kc_house_data_oppg1"
-rm(kc_house_data_sf) #fjerne 
-```
-
-```{r Oppgave 1 ferdig, må rydde}
 rm(cbd, cbd_sf, kc_house_data) #fjerne unødvendige datasett
 kc_house_data_oppg1 <- kc_house_data_sf #endre ferdig datasett til "kc_house_data_oppg1"
 rm(kc_house_data_sf) #fjerne 
@@ -282,6 +278,34 @@ K-nærmeste naboer (k-NN) er en teknikk i romlig analyse som brukes til å defin
 
 Bivariate Moran's I er en statistisk metode brukt for å måle romlig autokorrelasjon mellom to forskjellige variabler over en geografisk region. Dette er en utvidelse av den mer tradisjonelle Moran's I, som vanligvis brukes for å måle romlig autokorrelasjon for en enkelt variabel. Bivariate Moran's I hjelper med å forstå om det er et romlig mønster i hvordan to variabler relaterer seg til hverandre over et geografisk område.
 
+**3 narmeste naboer**
+
+![](Data/img/Skjermbilde 2023-11-20 094933.png)
+
+![](Data/img/Skjermbilde 2023-11-20 095031.png)
+
+![](Data/img/Skjermbilde 2023-11-20 095117.png)
+
+![]()
+
+![](Data/img/Skjermbilde 2023-11-20 095434.png)
+
+**10 nærmeste naboer**
+
+![](Data/img/Skjermbilde 2023-11-20 100029.png)
+
+![](Data/img/Skjermbilde 2023-11-20 100053.png)
+
+![](Data/img/Skjermbilde 2023-11-20 100120.png)
+
+![](Data/img/Skjermbilde 2023-11-20 100137.png)
+
+![](Data/img/Skjermbilde 2023-11-20 100151.png)
+
+![](Data/img/Skjermbilde 2023-11-20 100208.png)
+
+![](Data/img/Skjermbilde 2023-11-20 100232.png)
+
 #### V) Dere kan evt også eksprementere med SAR, SEM, og lm modeller i GeoDA
 
 ## 5. Returner så til Quarto dokumentet.
@@ -297,6 +321,7 @@ al. (2020) og diskuter gjerne valgte modeller utfra denne.
 #### 1. En null modell med bare huskarakteristika og tids-dummier (year_month)
 
 ```{r}
+#| eval: false
 hedon1 %>% 
     linearHypothesis(c("year_month2014-06=0", "year_month2014-07=0",
                        "year_month2014-08=0", "year_month2014-09=0",
@@ -308,6 +333,7 @@ hedon1 %>%
 ```
 
 ```{r}
+#| eval: false
 hedon2 %>% 
     linearHypothesis(c("year_month2014-06=0", "year_month2014-07=0",
                        "year_month2014-08=0", "year_month2014-09=0",
@@ -319,6 +345,7 @@ hedon2 %>%
 ```
 
 ```{r}
+#| eval: false
 hedon3 %>% 
     linearHypothesis(c("year_month2014-06=0", "year_month2014-07=0",
                        "year_month2014-08=0", "year_month2014-09=0",
@@ -332,6 +359,23 @@ hedon3 %>%
 #### 2. En modell med huskarakteristika, dist_CBD, relevante tract-
 
 #### variabler og tids-dummier.
+
+```{r}
+KC_husdata <- KC_husdata %>% 
+  filter(!is.na(EHD_percen))
+```
+
+```{r}
+mod2 <- "log(price) ~ log(sqft_living) + log(sqft_lot) + log(yr_built) + log(high) + log(I(andel_svart_alene + 1)) + waterfront + view"
+```
+
+```{r}
+lm_mod2 <- lm(mod2, data = KC_husdata)
+```
+
+```{r}
+summary(lm_mod2)
+```
 
 ```{r}
 # Create the second multiple regression model
