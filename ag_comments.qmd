@@ -1,0 +1,25 @@
+---
+title: "ag_comments"
+format: 
+  html: default
+  pdf: default
+editor: visual
+---
+
+-   Fikset lm_hedon1. Feilmelding: Error in lm.fit(x, y, offset = offset, singular.ok = singular.ok, \...) :
+    NA/NaN/Inf in 'x' Denne er typisk for log(0). Her er problemet andel_svart_alene som har verdien 0 for en eller flere «tracts»: Fikses med I(log(andel_svart_alene + 1))
+-   Fikset linearHypothesis(). Trenger lm-objekt som input
+-   Fikset litt på modellene og lm_objektene
+-   dist_cbd har dere gitt navnet avstand_til_cbd. Endret i mod3. Måtte også endre datasettet til kc_house_data_oppg1 siden det var der varaibelen var definert
+-   EDA ok
+-   referanse til. @day2001, men .bib filen mangler
+-   chunk med lm_navnpåmodell1lm_navnpåmodell2lm_navnpåmodell3, men disse er ikke definert noe sted
+-   Kunne ikke finne noen spatial regressions. Har lagt inn kode som viser hva dere kunne ha gjort.
+-   Dokumentet kjører nå og genererer pdf fil foutsatt at dere laster ned kart/datafilen kc_house_data_4567_MonaLIsa_Maren.gpkg og legger den i mappen Data/Kart/
+
+### Oppsummert
+
+Dere roter såpass mye med genering av datasettet at en del av oppgaven faller bort.
+Der bør se litt på hvordan jeg f.eks satte opp linearHypothesis().
+Ofte er det bare mindre detaljer som mangler for at dere skulle ha fått det til.
+Ta også en titt på den siste delen som er en slags kokebok for spatial regression når vi har å gjøre med et lokalt fenomen.

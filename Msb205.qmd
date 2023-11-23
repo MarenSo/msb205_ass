@@ -5,15 +5,14 @@ date: "Innleveringsfrist: 20.11.2023"
 format: pdf
 abstract: "Denne oppgaven bruker hedoniske prismodeller for å analysere boligmarkedet i King County. Prosjektet inkluderer en detaljert analyse med bruk av forskjellige datasett og avanserte statistiske og romlige teknikker. "
 editor: visual
-bibliography: [King_county.bib]
+#bibliography: [King_county.bib]
 page-layout: full
 number-sections: true
 papersize: a4
 ---
 
-editor_options: chunk_output_type: console
-
 ```{r}
+#| echo: false
 #| label: setup
 #| message: false
 library(sf)
@@ -30,17 +29,27 @@ library(knitr)
 library(foreign)
 library(spdep)
 library(car)
+library(modelsummary)
+library(flextable)
 ```
 
 # Innledning
 
-I denne oppgaven tar vi for oss boligmarkedet i King County ved hjelp av hedoniske prismodeller, med et spesielt fokus på anvendelsen av spatial økonometri. Vår tilnærming har en detaljert utforskning av hvordan ulike faktorer, både fysiske og lokasjonsbaserte, bidrar til å forme boligpriser. Gjennom en kombinasjon av varierte datasett og avanserte teknikker innen spatial økonometri, er vårt formål å avdekke de komplekse romlige dynamikkene som driver boligprisene i området.
+I denne oppgaven tar vi for oss boligmarkedet i King County ved hjelp av hedoniske prismodeller, med et spesielt fokus på anvendelsen av spatial økonometri.
+Vår tilnærming har en detaljert utforskning av hvordan ulike faktorer, både fysiske og lokasjonsbaserte, bidrar til å forme boligpriser.
+Gjennom en kombinasjon av varierte datasett og avanserte teknikker innen spatial økonometri, er vårt formål å avdekke de komplekse romlige dynamikkene som driver boligprisene i området.
 
-Kjernen i vårt datasett består av data om individuelle boliger i King County, inkludert elementer som salgsdato, pris, antall soverom og bad, total størrelse, antall etasjer, utsikt og tilstedeværelsen av sjøutsikt. Disse egenskapene gir oss innsikt i boligenes fysiske og estetiske kvaliteter. Vi integrerer nøyaktige geografiske koordinater for hver eiendom, noe som gjør beregning av avstander til sentrale forretningsdistrikter (CBD) og andre viktige steder mulig. Det er en romlige komponent som er avgjørende for å forstå hvordan lokasjon påvirker boligpriser.
+Kjernen i vårt datasett består av data om individuelle boliger i King County, inkludert elementer som salgsdato, pris, antall soverom og bad, total størrelse, antall etasjer, utsikt og tilstedeværelsen av sjøutsikt.
+Disse egenskapene gir oss innsikt i boligenes fysiske og estetiske kvaliteter.
+Vi integrerer nøyaktige geografiske koordinater for hver eiendom, noe som gjør beregning av avstander til sentrale forretningsdistrikter (CBD) og andre viktige steder mulig.
+Det er en romlige komponent som er avgjørende for å forstå hvordan lokasjon påvirker boligpriser.
 
-Videre vil analysen vår inneholde både demografisk og økonomisk informasjon, som inntektsnivåer og etnisk sammensetning i nabolagene. Ved bruk av denne tilnærmingen kan vi undersøke hvordan sosioøkonomiske forhold i et område påvirker boligpriser, noe som vil være med på å gi en mer helhetlig forståelse av markedet.
+Videre vil analysen vår inneholde både demografisk og økonomisk informasjon, som inntektsnivåer og etnisk sammensetning i nabolagene.
+Ved bruk av denne tilnærmingen kan vi undersøke hvordan sosioøkonomiske forhold i et område påvirker boligpriser, noe som vil være med på å gi en mer helhetlig forståelse av markedet.
 
-Ved å anvende metoder innen spatial økonometri, inkludert undersøkelse av romlig autokorrelasjon og bruk av romlige regresjonsmodeller, skal vi identifisere og analysere romlige mønstre og sammenhenger. Denne tilnærmingen er viktig for å adressere potensielle romlige avhengigheter og heterogenitet i dataene. Vi forventer at denne analytiske tilnærmingen vil føre til innsikter i de romlige mekanismene som påvirker boligpriser i King County, og hvordan de gjør det.
+Ved å anvende metoder innen spatial økonometri, inkludert undersøkelse av romlig autokorrelasjon og bruk av romlige regresjonsmodeller, skal vi identifisere og analysere romlige mønstre og sammenhenger.
+Denne tilnærmingen er viktig for å adressere potensielle romlige avhengigheter og heterogenitet i dataene.
+Vi forventer at denne analytiske tilnærmingen vil føre til innsikter i de romlige mekanismene som påvirker boligpriser i King County, og hvordan de gjør det.
 
 # 1. Raw data
 
@@ -104,7 +113,11 @@ cbd_sf <- st_transform(cbd, 2926)
 
 kc_house_data_sf <- kc_house_data_sf %>% 
   mutate(
-    avstand_til_cbd = st_distance(rep(cbd_sf, nrow(.)), ., by_element = TRUE),
+    avstand_til_cbd = st_distance(
+      rep(cbd_sf, nrow(.)),
+      ., 
+      by_element = TRUE
+      ),
     avstand_til_cbd = set_units(avstand_til_cbd, km)
     )
 
@@ -260,13 +273,23 @@ st_write(KC_husdata, "KC_husdata.gpkg", append = FALSE)
 
 # 4. EDA i GeoDA
 
-Spatial EDA (Exploratory Data Analysis) er viktig i geografisk og romlig analyse. Det hjelper til med å forstå mønstre, forhold og tendenser i geografiske data. Dette er spesielt relevant for analyse av boligmarkedet.
+Spatial EDA (Exploratory Data Analysis) er viktig i geografisk og romlig analyse.
+Det hjelper til med å forstå mønstre, forhold og tendenser i geografiske data.
+Dette er spesielt relevant for analyse av boligmarkedet.
 
 Den hedoniske boligprismodellen, inkludert OLS og flere romlige regresjonsmodeller, er en solid tilnærming for å forstå de underliggende driverne av boligpriser[@chi2020].
 
-K-nærmeste naboer (k-NN) er en teknikk i romlig analyse som brukes til å definere nabolagsstrukturer basert på geografiske enheter, som foreslått av [@chi2020]. Denne metoden identifiserer et forhåndsbestemt antall ('k') nærmeste naboer for hver observasjon, basert på avstander mellom punkter. @anselin1988 fremhever at k-NN tilbyr en løsning på utfordringen med avstandsbaserte vektmatriser, som ofte produserer for mange naboer i urbane områder og for få i landlige områder. Ifølge @altman1992, fungerer k-NN ved å finne et sett med de nærmeste naboene til et gitt datapunkt og deretter estimere en verdi for dette punktet basert på naboene. Dette prinsippet støttes av ideen om at observasjoner som er nærmere hverandre geografisk, sannsynligvis vil være mer like i deres avhengige variabler. K-NN-teknikken anses som spesielt nyttig i romlige analyser der avstand spiller en nøkkelrolle, som i klyngedannelse, romlig interpolering eller romlig regresjon. @altman1992 diskuterer også hvordan valg av 'k' påvirker modellens ytelse, inkludert forventningsskjevhet og varians.
+K-nærmeste naboer (k-NN) er en teknikk i romlig analyse som brukes til å definere nabolagsstrukturer basert på geografiske enheter, som foreslått av [@chi2020].
+Denne metoden identifiserer et forhåndsbestemt antall ('k') nærmeste naboer for hver observasjon, basert på avstander mellom punkter.
+@anselin1988 fremhever at k-NN tilbyr en løsning på utfordringen med avstandsbaserte vektmatriser, som ofte produserer for mange naboer i urbane områder og for få i landlige områder.
+Ifølge @altman1992, fungerer k-NN ved å finne et sett med de nærmeste naboene til et gitt datapunkt og deretter estimere en verdi for dette punktet basert på naboene.
+Dette prinsippet støttes av ideen om at observasjoner som er nærmere hverandre geografisk, sannsynligvis vil være mer like i deres avhengige variabler.
+K-NN-teknikken anses som spesielt nyttig i romlige analyser der avstand spiller en nøkkelrolle, som i klyngedannelse, romlig interpolering eller romlig regresjon.
+@altman1992 diskuterer også hvordan valg av 'k' påvirker modellens ytelse, inkludert forventningsskjevhet og varians.
 
-Bivariate Moran's I er en statistisk metode brukt for å måle romlig autokorrelasjon mellom to forskjellige variabler over en geografisk region. Dette er en utvidelse av den mer tradisjonelle Moran's I, som vanligvis brukes for å måle romlig autokorrelasjon for en enkelt variabel. Bivariate Moran's I hjelper med å forstå om det er et romlig mønster i hvordan to variabler relaterer seg til hverandre over et geografisk område.
+Bivariate Moran's I er en statistisk metode brukt for å måle romlig autokorrelasjon mellom to forskjellige variabler over en geografisk region.
+Dette er en utvidelse av den mer tradisjonelle Moran's I, som vanligvis brukes for å måle romlig autokorrelasjon for en enkelt variabel.
+Bivariate Moran's I hjelper med å forstå om det er et romlig mønster i hvordan to variabler relaterer seg til hverandre over et geografisk område.
 
 **3 nærmeste naboer**
 
@@ -275,8 +298,6 @@ Bivariate Moran's I er en statistisk metode brukt for å måle romlig autokorrel
 ![](Data/img/Skjermbilde%202023-11-20%20095031.png)
 
 ![](Data/img/Skjermbilde%202023-11-20%20095117.png)
-
-![]()
 
 ![](Data/img/Skjermbilde%202023-11-20%20095434.png)
 
@@ -296,25 +317,43 @@ Bivariate Moran's I er en statistisk metode brukt for å måle romlig autokorrel
 
 ![](Data/img/Skjermbilde%202023-11-20%20100232.png)
 
-Funnene våre i GeoDa tyder på at de dyre boligene i King County i hovedsak ligger i den nordlige delen av regionen. Det er mange dyre boliger i Seattle og Bellevue. De dyre boligene ligger langs kysten. I sør og i rurale områder innover i landet er boligene billigere.
+Funnene våre i GeoDa tyder på at de dyre boligene i King County i hovedsak ligger i den nordlige delen av regionen.
+Det er mange dyre boliger i Seattle og Bellevue.
+De dyre boligene ligger langs kysten.
+I sør og i rurale områder innover i landet er boligene billigere.
 
-Vi bruker signifikanskart for å visualisere statistisk signifikans av prisvariabelen. I kartet beskriver fargen p-verdien for variabelen. Grå er ikke signifikant, og lys grønn betyr et signifikansnivå p = 0,05, mellomgrønn p-verdi 0,01 og mørk grå p-verdi på 0,001.  P-verdien forteller oss hvor sannsynlig det er at vi ville fått det observerte resultatet dersom nullhypotesen var sann. P = 0,05 betyr at det er 5% sannsynlighet for at det observerte er tilfeldig.\
+Vi bruker signifikanskart for å visualisere statistisk signifikans av prisvariabelen.
+I kartet beskriver fargen p-verdien for variabelen.
+Grå er ikke signifikant, og lys grønn betyr et signifikansnivå p = 0,05, mellomgrønn p-verdi 0,01 og mørk grå p-verdi på 0,001. 
+P-verdien forteller oss hvor sannsynlig det er at vi ville fått det observerte resultatet dersom nullhypotesen var sann.
+P = 0,05 betyr at det er 5% sannsynlighet for at det observerte er tilfeldig.\
 
-I våre data har vi 10362 punkter som ikke er signifikant, altså har en p-verdi på over 0,05%. I disse punektene er sannsynligheten for at boligprisene er tilfeldig høyere enn 5% og derfor kan ikke nullhypotesen (ingen sammenheng) forkastes. Det er ikke nok evidens til å si at det har statistisk signifikant effekt.
+I våre data har vi 10362 punkter som ikke er signifikant, altså har en p-verdi på over 0,05%.
+I disse punektene er sannsynligheten for at boligprisene er tilfeldig høyere enn 5% og derfor kan ikke nullhypotesen (ingen sammenheng) forkastes.
+Det er ikke nok evidens til å si at det har statistisk signifikant effekt.
 
 Vi har 3133 lysegrønne punkter, altså med signifikansnivå med p under 0,05.
 
 Vi har 3011 mellomgrønne punkter, som betyr at de har et signifikansnivå på under p=0,01.
 
-Vi har 4326 punkter som er mørkegrønne, dette betyr at disse punktene har et signifikansnivå på maks p=0,001. Det vil si at det er under 1% sannsynlighet for at disse prisene er tilfeldig. ii. Definer mint tre hedonske modeller.
+Vi har 4326 punkter som er mørkegrønne, dette betyr at disse punktene har et signifikansnivå på maks p=0,001.
+Det vil si at det er under 1% sannsynlighet for at disse prisene er tilfeldig.
+ii.
+Definer mint tre hedonske modeller.
 
 # 5. Hedoniske boligmodeller
 
-En hedonisk boligmodell er en økonometrisk modell. Den brukes for å estimere verdien av en boligen basert på dens egenskaper; størrelse, beliggenhet, alder, tilstand osv. I en slik modell er verdien av boligen lik summen av prisen på de individuelle egenskapene. Det gjør man ved å estimere verdien av hver egenskap og beregne den relative betydningen av disse egenskapene for boligprisene. Dermed kan man også forstå hva som påvirker boligprisene. Nå skal vi formulere tre hedoniske modeller.
+En hedonisk boligmodell er en økonometrisk modell.
+Den brukes for å estimere verdien av en boligen basert på dens egenskaper; størrelse, beliggenhet, alder, tilstand osv.
+I en slik modell er verdien av boligen lik summen av prisen på de individuelle egenskapene.
+Det gjør man ved å estimere verdien av hver egenskap og beregne den relative betydningen av disse egenskapene for boligprisene.
+Dermed kan man også forstå hva som påvirker boligprisene.
+Nå skal vi formulere tre hedoniske modeller.
 
 ## 1. En null modell med bare huskarakteristika og tids-dummier (year_month)
 
-En enkel nullmodell som bare inkluderer husets karakteristikker og tidsdummier. Denne modellen kan brukes som en referansemodell for å sammenligne med mer komplekse modeller.
+En enkel nullmodell som bare inkluderer husets karakteristikker og tidsdummier.
+Denne modellen kan brukes som en referansemodell for å sammenligne med mer komplekse modeller.
 
 ```{r Fjerner variabel med NA}
 KC_husdata <- KC_husdata |> 
@@ -322,52 +361,53 @@ KC_husdata <- KC_husdata |>
 ```
 
 ```{r}
-hedon1 <- "log(price) ~ year_month + log(sqft_living) + log(sqft_lot) + log(andel_svart_alene) + log(traffic_pe) + waterfront + view"
+# Bruker as.formula() for da kan vi ha linjeskift og slipper 
+# modeller som bryter høyre marg
+# andel_svart_alene og traffic_pe har verier lik 0. Går ikke 
+# med log_ løses ved å legge til 1. Må bruke I() siden + har
+# spesiell betydning i formula
+# endrer navn fra hedon1 til mod1 for å være konsekvent
+mod1 <- as.formula("log(price) ~ year_month + log(sqft_living) +
+                     log(sqft_lot) + I(log(andel_svart_alene + 1)) +
+                     I(log(traffic_pe + 1)) + waterfront + view")
 ```
 
 ```{r}
-lm_hedon1 <- lm(hedon1, KC_husdata)
+lm_mod1 <- lm(mod1, KC_husdata)
 ```
 
 ```{r}
-#| eval: false
-hedon1 %>% 
-    linearHypothesis(c("year_month2014-06=0", "year_month2014-07=0",
-                       "year_month2014-08=0", "year_month2014-09=0",
-                       "year_month2014-10=0", "year_month2014-11=0",
-                       "year_month2014-12=0", "year_month2015-01=0",
-                       "year_month2015-02=0", "year_month2015-03=0",
-                       "year_month2015-04=0", "year_month2015-05=0"),
+summary(lm_mod1)
+```
+
+### Simultan test på tids-dummiene
+
+```{r}
+# Trenger et lm objekt ikke en formula
+# hedon1 %>% 
+#     linearHypothesis(c("year_month2014-06=0", "year_month2014-07=0",
+#                        "year_month2014-08=0", "year_month2014-09=0",
+#                        "year_month2014-10=0", "year_month2014-11=0",
+#                        "year_month2014-12=0", "year_month2015-01=0",
+#                        "year_month2015-02=0", "year_month2015-03=0",
+#                        "year_month2015-04=0", "year_month2015-05=0"),
+#                      white_adjust = hc3)
+#                      
+# Fikser year_month. Nå virker den
+lm_mod1 %>% 
+    linearHypothesis(c("year_month20145=0", "year_month20146=0",
+                       "year_month20147=0", "year_month20148=0",
+                       "year_month20149=0", "year_month201410=0",
+                       "year_month201411=0", "year_month20151=0",
+                       "year_month20152=0", "year_month20153=0",
+                       "year_month20154=0", "year_month201412=0"),
                      white_adjust = hc3)
-```
-
-```{r}
-#| eval: false
-hedon2 %>% 
-    linearHypothesis(c("year_month2014-06=0", "year_month2014-07=0",
-                       "year_month2014-08=0", "year_month2014-09=0",
-                       "year_month2014-10=0", "year_month2014-11=0",
-                       "year_month2014-12=0", "year_month2015-01=0",
-                       "year_month2015-02=0", "year_month2015-03=0",
-                       "year_month2015-04=0", "year_month2015-05=0"),
-                     white_adjust = hc4)
-```
-
-```{r}
-#| eval: false
-hedon3 %>% 
-    linearHypothesis(c("year_month2014-06=0", "year_month2014-07=0",
-                       "year_month2014-08=0", "year_month2014-09=0",
-                       "year_month2014-10=0", "year_month2014-11=0",
-                       "year_month2014-12=0", "year_month2015-01=0",
-                       "year_month2015-02=0", "year_month2015-03=0",
-                       "year_month2015-04=0", "year_month2015-05=0"),
-                     white_adjust = hc1)
 ```
 
 ## 2. En modell med huskarakteristika, dist_CBD, relevante tract-variabler og tids-dummier.
 
-Denne modellen inkluderer også distansen til CBD (Central Business District) og relevante tract-variabler. Dette kan være nyttig for å undersøke hvordan avstanden til sentrum og andre lokale faktorer påvirker boligprisene.
+Denne modellen inkluderer også distansen til CBD (Central Business District) og relevante tract-variabler.
+Dette kan være nyttig for å undersøke hvordan avstanden til sentrum og andre lokale faktorer påvirker boligprisene.
 
 ```{r}
 KC_husdata <- KC_husdata %>% 
@@ -375,7 +415,10 @@ KC_husdata <- KC_husdata %>%
 ```
 
 ```{r}
-mod2 <- "log(price) ~ log(sqft_living) + log(sqft_lot) + log(yr_built) + log(high) + log(I(andel_svart_alene + 1)) + waterfront + view"
+mod2 <- as.formula("log(price) ~ year_month + log(sqft_living) + log(sqft_lot) + 
+                   log(yr_built) + log(high) + 
+                   log(I(andel_svart_alene + 1)) + waterfront + view"
+                   )
 ```
 
 ```{r}
@@ -386,35 +429,107 @@ lm_mod2 <- lm(mod2, data = KC_husdata)
 summary(lm_mod2)
 ```
 
+### Simultan test på tids-dummiene
+
+```{r}
+# hedon2 %>% 
+#     linearHypothesis(c("year_month2014-06=0", "year_month2014-07=0",
+#                        "year_month2014-08=0", "year_month2014-09=0",
+#                        "year_month2014-10=0", "year_month2014-11=0",
+#                        "year_month2014-12=0", "year_month2015-01=0",
+#                        "year_month2015-02=0", "year_month2015-03=0",
+#                        "year_month2015-04=0", "year_month2015-05=0"),
+#                      white_adjust = hc4)
+lm_mod2 %>% 
+    linearHypothesis(c("year_month20145=0", "year_month20146=0",
+                       "year_month20147=0", "year_month20148=0",
+                       "year_month20149=0", "year_month201410=0",
+                       "year_month201411=0", "year_month20151=0",
+                       "year_month20152=0", "year_month20153=0",
+                       "year_month20154=0", "year_month201412=0"),
+                     white_adjust = hc4)
+```
+
 ```{r}
 # Create the second multiple regression model
-mod2 <- lm(price ~ bedrooms + bathrooms + sqft_living + sqft_living15 + sqft_lot + sqft_lot15 + sqft_above + floors + grade + yr_built + yr_renovated + waterfront + condition + view + income + low + mid + high + year_month, data = KC_husdata)
+# kan ikke ha low  + mid + high (Multikolinearitet)
+mod2B <- 
+  as.formula(price ~  year_month + bedrooms + bathrooms + 
+               sqft_living + sqft_living15 + sqft_lot + 
+               sqft_lot15 + sqft_above + floors + grade + 
+               yr_built + yr_renovated + waterfront + 
+               condition + view + low  + high
+             )
 
+lm_mod2B <- lm(mod2B, data = KC_husdata)
+```
+
+```{r}
 # Print a summary of the second model
+summary(lm_mod2B)
+```
+
+```{r}
 summary(mod2)
 ```
 
 ## 3. En modell med huskarakteristika, dist_CBD, EHD indeks, (eventuelt inntektsvariabel) og tids-dummier.
 
-Den tredje modellen inkluderer også EHD-indeksen (Environmental Health Index) eller en inntektsvariabel. Dette kan være nyttig for å undersøke hvordan miljøkvalitet og inntekt påvirker boligprisene.
+Den tredje modellen inkluderer også EHD-indeksen (Environmental Health Index) eller en inntektsvariabel.
+Dette kan være nyttig for å undersøke hvordan miljøkvalitet og inntekt påvirker boligprisene.
 
 ```{r}
-mod3 <- lm(price ~ bedrooms + bathrooms + sqft_living + sqft_living15 + sqft_lot + sqft_lot15 + sqft_above + floors + grade + yr_built + yr_renovated + waterfront + condition + view + dist_cbd_km + EHD_percen + low + high + year_month, data = KC_husdata)
+mod3 <- as.formula("price ~ year_month + bedrooms + bathrooms + 
+                   sqft_living + sqft_living15 + sqft_lot + 
+                   sqft_lot15 + sqft_above + floors + grade + 
+                   yr_built + yr_renovated + waterfront + 
+                   condition + view + avstand_til_cbd + 
+                   EHD_percen + low + high"
+                   )
 
+lm_mod3 <- lm(mod3, data = kc_house_data_oppg1)
+```
+
+```{r}
 # Print a summary of the model
-summary(mode3)
+summary(lm_mod3)
+```
 
+```{r}
+lm_mod3 %>% 
+    linearHypothesis(c("year_month20145=0", "year_month20146=0",
+                       "year_month20147=0", "year_month20148=0",
+                       "year_month20149=0", "year_month201410=0",
+                       "year_month201411=0", "year_month20151=0",
+                       "year_month20152=0", "year_month20153=0",
+                       "year_month20154=0", "year_month201412=0"),
+                     white_adjust = hc4)
 ```
 
 ## Test og diskuter hvilken modell som er best. @mona
 
-# 6. Bruk en simultan test på tids-dummiene
-
-```{r Kan du ligge inn riktig navn på de robuste modellene?}
-msummary(list("Model 1" = modell1_robust, "Model 2" = modell2_robust, "Model 3" = modell3_robust), output = "flextable")
-```
+modell1_robust, modell2_robust og modell3_robust ikke definert.
+Endrer til mod1
 
 ```{r}
+#| echo: false
+#| ft.arraystretch: 0.8
+modelsummary(list("Model 1" = lm_mod1, "Model 2" = lm_mod2, "Model 3" = lm_mod3), output = "flextable") |> 
+  autofit() %>% 
+  # de følgende linjene sørger for fornuftig tabell for andre
+  # format enn pdf (latex).
+  line_spacing(space = 1.1,
+              part = "body"
+              ) %>% 
+  hrule(rule = "exact")  %>% 
+  fontsize(size = 9) %>% 
+  theme_booktabs()
+```
+
+Modellene i chunken nedenfor er ikke definert
+
+```{r}
+#| eval: false
 lm_navnpåmodell1
 lm_navnpåmodell2
 lm_navnpåmodell3
@@ -422,41 +537,58 @@ lm_navnpåmodell3
 
 Velge hvilken som er best:
 
-Se på t-verdiene for hver variabel i modellen. En t-verdi på 2 eller høyere indikerer vanligvis at variabelen er signifikant forskjellig fra null. Du kan også se på R-kvadratverdien for hver modell, som gir en indikasjon på hvor mye av variasjonen i den avhengige variabelen som forklares av de uavhengige variablene i modellen. En høyere R-kvadratverdi indikerer at modellen gir en bedre tilpasning til dataene.
+Se på t-verdiene for hver variabel i modellen.
+En t-verdi på 2 eller høyere indikerer vanligvis at variabelen er signifikant forskjellig fra null.
+Du kan også se på R-kvadratverdien for hver modell, som gir en indikasjon på hvor mye av variasjonen i den avhengige variabelen som forklares av de uavhengige variablene i modellen.
+En høyere R-kvadratverdi indikerer at modellen gir en bedre tilpasning til dataene.
 
-Bruk informasjonskriterier som AIC eller BIC til å sammenligne modellene. Disse kriteriene tar hensyn til både modellens tilpasning til dataene og dens kompleksitet, og gir en måte å sammenligne modeller med forskjellige antall variabler.
+Bruk informasjonskriterier som AIC eller BIC til å sammenligne modellene.
+Disse kriteriene tar hensyn til både modellens tilpasning til dataene og dens kompleksitet, og gir en måte å sammenligne modeller med forskjellige antall variabler.
 
 AIC = 2k - 2ln(L) BIC = kln(n) - 2ln(L)
 
 k er antall parametere i modellen n er antall observasjoner i datasettet L er maksimumsverdien av sannsynlighetsfunksjonen for modellen.
 
-For begge kriteriene gjelder at lavere verdier indikerer en bedre modell. Når du sammenligner modeller, velger du den modellen med lavest AIC eller BIC.
+For begge kriteriene gjelder at lavere verdier indikerer en bedre modell.
+Når du sammenligner modeller, velger du den modellen med lavest AIC eller BIC.
 
-Vurder om modellen gir meningsfulle og informative resultater som svarer på forskningsspørsmålet ditt. Hvis en modell gir resultater som ikke gir mening eller ikke svarer på forskningsspørsmålet, kan det hende at den ikke er den beste modellen for ditt formål.
+Vurder om modellen gir meningsfulle og informative resultater som svarer på forskningsspørsmålet ditt.
+Hvis en modell gir resultater som ikke gir mening eller ikke svarer på forskningsspørsmålet, kan det hende at den ikke er den beste modellen for ditt formål.
 
 ## Hedonic House Prise model
 
-Den hedoniske prisfunksjonen kan brukes for å bestemme hvor mye mer som må betales for en eiendom med en ekstra enhet av en bestemt boligkarakteristikk [@day2001]. Dette er kjent som den implisitte prisen for en eiendomsegenskap; implisitt fordi den marginale prisen på en egenskap indirekte avsløres gjennom de beløp husholdninger er forberedt på å betale for hele eiendommen, der den spesielle egenskapen bare er en del [@day2001].
+Den hedoniske prisfunksjonen kan brukes for å bestemme hvor mye mer som må betales for en eiendom med en ekstra enhet av en bestemt boligkarakteristikk [@day2001].
+Dette er kjent som den implisitte prisen for en eiendomsegenskap; implisitt fordi den marginale prisen på en egenskap indirekte avsløres gjennom de beløp husholdninger er forberedt på å betale for hele eiendommen, der den spesielle egenskapen bare er en del [@day2001].
 
-I hedoniske markeder kan prisen betalt for ekstra av en egenskap delvis avhenge av nivået på tilbudet av den egenskapen [@day2001]. For eksempel kan den implisitte prisen for ekstra "fred og ro" være høy hvis en eiendom er i et veldig støyende område og relativt lav hvis eiendommen er i et fredelig område [@day2001]. Den hedoniske prisfunksjonen brukes for å bestemme den implisitte prisfunksjonen som beskriver beløpet betalt for ekstra av en eiendomsegenskap, som en funksjon av nivået på tilbudet av den egenskapen og nivået på tilbudet av andre eiendomsegenskaper [@day2001].
+I hedoniske markeder kan prisen betalt for ekstra av en egenskap delvis avhenge av nivået på tilbudet av den egenskapen [@day2001].
+For eksempel kan den implisitte prisen for ekstra "fred og ro" være høy hvis en eiendom er i et veldig støyende område og relativt lav hvis eiendommen er i et fredelig område [@day2001].
+Den hedoniske prisfunksjonen brukes for å bestemme den implisitte prisfunksjonen som beskriver beløpet betalt for ekstra av en eiendomsegenskap, som en funksjon av nivået på tilbudet av den egenskapen og nivået på tilbudet av andre eiendomsegenskaper [@day2001].
 
 ### OLS Modellen
 
-Den ordinære minste kvadraters (OLS) regresjonsmodellen brukes ofte til å estimere hedoniske prismodeller innen boligøkonomi. I praksis er OLS-modellen i en hedonisk priskontekst et utgangspunkt for å forstå hvordan ulike boligattributter verdsettes i markedet. Den gir et grunnleggende rammeverk for analysen, som kan utvides med mer sofistikerte romlige økonometriske teknikker for å fange opp kompleksiteten i eiendomsmarkedene.
+Den ordinære minste kvadraters (OLS) regresjonsmodellen brukes ofte til å estimere hedoniske prismodeller innen boligøkonomi.
+I praksis er OLS-modellen i en hedonisk priskontekst et utgangspunkt for å forstå hvordan ulike boligattributter verdsettes i markedet.
+Den gir et grunnleggende rammeverk for analysen, som kan utvides med mer sofistikerte romlige økonometriske teknikker for å fange opp kompleksiteten i eiendomsmarkedene.
 
 **Forutsetninger**
 
-1\. Regresjonsmodellen er lineær i parametrene (β0, β1, β3, osv.).
+1\.
+Regresjonsmodellen er lineær i parametrene (β0, β1, β3, osv.).
 
-2\. Feilleddet har en gjennomsnittsverdi på null.
+2\.
+Feilleddet har en gjennomsnittsverdi på null.
 
-3\. Alle uavhengige variabler er ukorrelerte med feilene.
+3\.
+Alle uavhengige variabler er ukorrelerte med feilene.
 
-4\. Feilene har en konstant varians (homoskedastisitet) og er ikke korrelerte med hverandre.
+4\.
+Feilene har en konstant varians (homoskedastisitet) og er ikke korrelerte med hverandre.
 
-5\. Ingen av forklaringsvariablene i flervariabelregresjonen er en perfekt lineær funksjon av andre forklaringsvariabler (ingen perfekt multikollinearitet).
+5\.
+Ingen av forklaringsvariablene i flervariabelregresjonen er en perfekt lineær funksjon av andre forklaringsvariabler (ingen perfekt multikollinearitet).
 
-6\. Feilleddet er normalfordelt.
+6\.
+Feilleddet er normalfordelt.
 
 En romlig OLS-regresjonsmodell med flere uavhengige variabler kan være representert ved følgende utvidet formel:
 
@@ -474,19 +606,25 @@ X1, X2, ..., Xn er de uavhengige variablene som kan omfatte husets størrelse, a
 
 ε er feilleddet som representerer tilfeldige avvik fra regresjonslinjen.
 
-I en romlig kontekst må vi også vurdere mulig romlig avhengighet, hvor verdien av Y for en observasjon kan være korrelert med verdier av Y for naboopplevelser i geografisk rom. Dette kan håndteres ved å inkludere et romlig lag i modellen eller ved å justere standardfeilene for å ta hensyn til romlig autokorrelasjon.
+I en romlig kontekst må vi også vurdere mulig romlig avhengighet, hvor verdien av Y for en observasjon kan være korrelert med verdier av Y for naboopplevelser i geografisk rom.
+Dette kan håndteres ved å inkludere et romlig lag i modellen eller ved å justere standardfeilene for å ta hensyn til romlig autokorrelasjon.
 
 # 7. Spatial Regressions
 
-i\. Last gruppens utvalg fra relevant .gpkg fil (tallene er seed
+i\.
+Last gruppens utvalg fra relevant .gpkg fil (tallene er seed
 
 verdiene som er brukt for å genererer utvalgene)
 
-ii\. Legg områdevariablene til det reduserte datasettet.
+ii\.
+Legg områdevariablene til det reduserte datasettet.
 
-iii\. Formuler modellen dere vil bruke. Kjør den som lm (OLS) modell
+iii\.
+Formuler modellen dere vil bruke.
+Kjør den som lm (OLS) modell
 
 ```{r}
+#| eval: false
 model <- lm(formula, KC_husdata)
 ```
 
@@ -494,7 +632,8 @@ model <- lm(formula, KC_husdata)
 
 ```
 
-For å teste for og håndtere romlig autokorrelasjon i en OLS-modell, kan man bruke diagnostiske tester som Moran's I på residualene. Hvis testene indikerer romlig autokorrelasjon, må man kanskje gå over til en spesifikk romlig regresjonsmodell som passer dataene bedre.
+For å teste for og håndtere romlig autokorrelasjon i en OLS-modell, kan man bruke diagnostiske tester som Moran's I på residualene.
+Hvis testene indikerer romlig autokorrelasjon, må man kanskje gå over til en spesifikk romlig regresjonsmodell som passer dataene bedre.
 
 **og bruk lm.morantest() og moran.plot() på residualene for å**
 
@@ -530,18 +669,292 @@ For å teste for og håndtere romlig autokorrelasjon i en OLS-modell, kan man br
 
 **hver modell fjerner «spatial effects» fra residualene.**
 
-# 8. Diskusjon av resultatene
+## Diskusjon av resultatene
 
-i\. En hedonisk boligprismodell er en form for regressjonsmodell som brukes for å estimere verdien av ulike egenskaper (attributter) som bidrar til den totale prisen på en bolig. Denne modellen antyder at prisen på en bolig er summen av prisen på dens individuelle egenskaper. For eksempel, kan en boligpris være summen av prisen på antall bad, beliggenhet, størrelse osv. Vi har problemer med at kodene ikke virker hos meg (Maren), men en grafisk fremstilling av en slik modell kan for eksempel vise boligprisen på y-aksen og de forskjellige egenskapene på x-aksen, med en linje som representerer den estimerte sammenhengen mellom egenskapene og boligprisen.
+i.  En hedonisk boligprismodell er en form for regressjonsmodell som brukes for å estimere verdien av ulike egenskaper (attributter) som bidrar til den totale prisen på en bolig. Denne modellen antyder at prisen på en bolig er summen av prisen på dens individuelle egenskaper. For eksempel, kan en boligpris være summen av prisen på antall bad, beliggenhet, størrelse osv. Vi har problemer med at kodene ikke virker hos meg (Maren), men en grafisk fremstilling av en slik modell kan for eksempel vise boligprisen på y-aksen og de forskjellige egenskapene på x-aksen, med en linje som representerer den estimerte sammenhengen mellom egenskapene og boligprisen.
+ii. I hver av disse modellene vises de estimerte koeffisientene forventet endring i variabelen, gitt alt annet likt. For eksempel kan en koeffisient på 0,2 for variabelen "bathrooms" i en OLS-modell tolkes som at en økning i et antall bad vil øke prisen med 0,2 (i logaritmisk skala).
+iii. I en SEM, SAR, SDEM og SLX vil det være samme tolkning av koeffisientene, men disse modellene tar også hensyn til romlig autokorrelasjon. Altså at prisene i et område kan avhenge av prisene i områdene rundt.
+iv. For å avgjøre om de estimerte koeffisientene er signifikante, kan vi se på p-verdiene. Hvis p-verdien er mindre enn 0,05, er det vanlig å konkludere med at koeffisienten er statistisk signifikant. For å avgjøre om koeffisientene gir mening, kan man sammenligne det med hva man forventer. For eksempel bør koeffisienten for "bathrooms" være positiv, fordi vi forventer at prisen vil øke med økt antall bad.
+v.  I SAR-modellen kan vi bruke de estimerte effektene for å få et mål på prisene. Dette kan vi gjøre ved å multiplisere koeffisientene med de gjennomsnittlige verdiene av tilsvarende variabler.
+vi. Estimerte effekter (direkte, indirekte og totale effekter) gir en økonomisk tolkning av hvordan endringer i en variabel vil påvirke boligprisen. Både direkte og gjennom effekten på andre variabler. For eksempel vil en direkte effekt av en økning i antall bad kan være en økning i boligprisen, mens en indirekte effekt kunne være at en økning i antall bad øker nabolagets snitt-boligpris, som da igjen vil øke prisen på boligen. Den totale effekten er summen av den direkte og indirekte effekten.
 
-ii\. I hver av disse modellene vises de estimerte koeffisientene forventet endring i variabelen, gitt alt annet likt. For eksempel kan en koeffisient på 0,2 for variabelen "bathrooms" i en OLS-modell tolkes som at en økning i et antall bad vil øke prisen med 0,2 (i logaritmisk skala).
+## Oppsummering/konklusjon
 
-I en SEM, SAR, SDEM og SLX vil det være samme tolkning av koeffisientene, men disse modellene tar også hensyn til romlig autokorrelasjon. Altså at prisene i et område kan avhenge av prisene i områdene rundt.
+## Spatial regression
 
-iii\. For å avgjøre om de estimerte koeffisientene er signifikante, kan vi se på p-verdiene. Hvis p-verdien er mindre enn 0,05, er det vanlig å konkludere med at koeffisienten er statistisk signifikant. For å avgjøre om koeffisientene gir mening, kan man sammenligne det med hva man forventer. For eksempel bør koeffisienten for "bathrooms" være positiv, fordi vi forventer at prisen vil øke med økt antall bad.
+Viser hvordan dere kunne utført spatial regressions.
 
-iv\. I SAR-modellen kan vi bruke de estimerte effektene for å få et mål på prisene. Dette kan vi gjøre ved å multiplisere koeffisientene med de gjennomsnittlige verdiene av tilsvarende variabler.
+```{r}
+mod3_ag <- 
+  as.formula("log(price) ~ year_month + log(sqft_living) + 
+             log(sqft_lot) + I(log(age +2)) + waterfront + 
+             view + condition + grade + log(dist_cbd) + 
+             log(EHD_percen) + log(low) + 
+             I(log(andel_svart_alene + 1))")
+```
 
-v\. Estimerte effekter (direkte, indirekte og totale effekter) gir en økonomisk tolkning av hvordan endringer i en variabel vil påvirke boligprisen. Både direkte og gjennom effekten på andre variabler. For eksempel vil en direkte effekt av en økning i antall bad kan være en økning i boligprisen, mens en indirekte effekt kunne være at en økning i antall bad øker nabolagets snitt-boligpris, som da igjen vil øke prisen på boligen. Den totale effekten er summen av den direkte og indirekte effekten.
 
-# 9. Oppsummering/konklusjon
+Viser for k = 10.
+Antar lokalt fenomen så SDEM, SEM, SLX og OLS er de relevante modellene.
+Bruker også Durbin argumentet for å angi de variablene jeg øsnker spatial lag på.
+
+
+```{r}
+# Lastet ned data-fieln deres fra Canvas
+kc_house_4567 <- 
+  st_read(
+    "Data/Kart/kc_house_data_4567_MonaLisa_Maren.gpkg",
+    quiet = TRUE
+    ) |> 
+  mutate(
+    age = (year(date(date)) - yr_built) + 2
+  ) |> 
+  rename(
+    low = inc_fam_low_per,
+    med = inc_fam_med_per,
+    high = inc_fam_high_per
+  ) |> 
+  left_join(
+    acs_b02001_race,
+    join_by(GEO_ID_TRT == GEOIDTRT)
+    )
+```
+
+
+
+### k-nearest og vektmatriser
+
+
+
+#### k = 3
+
+```{r}
+k3nb <- knearneigh(kc_house_4567, k = 3)
+nb3 <- knn2nb(k3nb)
+w_mat_3 <- nb2listw(nb3, style = "W")
+```
+
+#### k = 10
+
+```{r}
+k10nb <- knearneigh(kc_house_4567, k = 10)
+nb10 <- knn2nb(k10nb)
+w_mat_10 <- nb2listw(nb10, style = "W")
+```
+
+Utfører analysen for k = 10 her.
+
+### SDEM
+
+```{r}
+SDEM <- errorsarlm(
+  formula = mod3_ag, 
+  data = kc_house_4567, 
+  listw = w_mat_10, 
+  Durbin =  as.formula(~ log(sqft_living) + log(sqft_lot) + I(log(age + 2)) + 
+                           log(dist_cbd) + log(EHD_percen) + log(low) + 
+                           I(log(andel_svart_alene + 1))),
+  # There should be no NA
+  na.action = na.omit
+  )
+```
+
+```{r}
+#| label: impactsSDEM
+#| tbl-cap: "Impacts from SDEM model"
+SDEM |> 
+  impacts() %>%
+  .$impacts %>%
+  bind_cols(variabels = names(.[[1]]), .) |> 
+  flextable() |> 
+  colformat_double(digits = 5) |> 
+  autofit()
+```
+
+Korresponderende p-verdier
+
+```{r}
+#| label: pValuesSDEMimpacts
+#| tbl-cap: "p-values for SDEM impacts."
+SDEM |> 
+  impacts() |> 
+  summary(zvalues = TRUE) %>%
+  .$pzmat %>%
+  # pzmat er en matrise så variabelnavnene må hentes
+  # ut med dimnames(.)[[1]]
+  bind_cols(variabels = dimnames(.)[[1]], .) |> 
+  flextable() |> 
+  colformat_double(digits = 5) |> 
+  autofit()
+```
+
+```{r}
+summary_SDEM <- summary(SDEM)
+```
+
+$\lambda$: `r  summary_SDEM$lambda`, $\theta$ ser ikke ut til å være tilgjengelig.
+
+### SEM
+
+```{r}
+SEM <- errorsarlm(
+  formula = mod3_ag,
+  data = kc_house_4567, 
+  listw = w_mat_10, 
+  Durbin = FALSE,
+  # There should be no NA
+  na.action = na.omit
+  )
+```
+
+```{r}
+summary_SEM <- summary(SEM)
+```
+
+```{r}
+#| label: SEMresults
+#| tbl-cap: "Results from SEM model"
+SEM |> 
+  broom::tidy() |> 
+  # data.frame to avoid type in header
+  as.data.frame() |> 
+  flextable() |> 
+  colformat_double(digits = 5) |> 
+  autofit()
+```
+
+$\lambda$: `r  summary_SEM$lambda`
+
+### SLX
+
+```{r}
+SLX <- lmSLX(
+  formula = mod3_ag,
+  data = kc_house_4567, 
+  listw = w_mat_10, 
+  Durbin = as.formula(~ log(sqft_living) + log(sqft_lot) + I(log(age + 2)) + 
+                           log(dist_cbd) + log(EHD_percen) + log(low) + 
+                           I(log(andel_svart_alene + 1))),
+  # There should be no NA
+  na.action = na.omit
+  )
+```
+
+```{r}
+#| label: impactsSLX
+#| tbl-cap: "Impacts from SLX model"
+SLX|> 
+  impacts() %>%
+  .$impacts %>%
+  bind_cols(variabels = names(.[[1]]), .) |> 
+  flextable() |> 
+  colformat_double(digits = 5) |> 
+  autofit()
+```
+
+Korresponderende p-verdier
+
+```{r}
+#| label: pValuesSLXimpacts
+#| tbl-cap: "p-values for SSLX impacts."
+SLX|> 
+  impacts() |> 
+  summary(zvalues = TRUE) %>%
+  .$pzmat %>%
+  # pzmat er en matrise så variabelnavnene må hentes
+  # ut med dimnames(.)[[1]]
+  bind_cols(variabels = dimnames(.)[[1]], .) |> 
+  flextable() |> 
+  colformat_double(digits = 5) |> 
+  autofit()
+```
+
+### OLS (redusert datasett)
+
+```{r}
+OLS <- lm(mod3_ag, data = kc_house_4567)
+```
+
+```{r}
+#| label: OLSresults
+#| tbl-cap: "Results from OLS model reduced data"
+OLS |> 
+  broom::tidy() |> 
+  # data.frame to avoid type in header
+  as.data.frame() |> 
+  flextable() |> 
+  colformat_double(digits = 5) |> 
+  autofit()
+```
+
+### Valg av modell
+
+$$
+y = X \beta + W X \theta + u,\quad u = \lambda W u + \epsilon, 
+$$ H0: Begrens $\theta$ til 0.
+
+```{r}
+LR.Sarlm(SDEM, SEM)
+```
+
+Forkaster H0, vi bør ikke begrense $\theta$ til 0.
+Velger SDEM
+
+H0: Begrens $\lambda$ til 0.
+
+```{r}
+LR.Sarlm(SDEM, SLX)
+```
+
+Forkaster H0, vi bør ikke begrense $\lambda$ til 0.
+Velger SDEM
+
+H0: Begrens $\lambda$ og $\theta$ til 0.
+
+```{r}
+LR.Sarlm(SDEM, OLS)
+```
+
+Forkaster H0, vi bør ikke begrense $\lambda$ og $\theta$ til 0.
+Velger SDEM.
+
+Spatial Durban Error Model (SDEM) ser altså ut til å være den modellen som best håndterer den romlige auto-korrelasjonen vi har i dataene.
+
+Plotter residualene fra SDEM.
+
+```{r}
+moran.plot(residuals(SDEM), listw = w_mat_10, pch = 20, cex = 0.3)
+```
+
+Formell test for auto-korrelasjon på residualene fra SDEM.
+
+H0: Ingen romlig auto-korrelasjon i residualene.
+
+```{r}
+moran.test(residuals(SDEM), listw = w_mat_10)
+```
+
+Ser at vi ikke kan forkaste H0, altså ingen signifikant gjenværende romlig auto-korrelasjon i residualene fra SDEM.
+
+```{r}
+#| label: impactsSDEMestOLS
+#| tbl-cap: "Impacts from SDEM model and coeffisients from OLS"
+SDEM |> 
+  impacts() %>%
+  .$impacts %>%
+  bind_cols(
+    variabels = names(.[[1]]),
+    ., 
+    `coef. OLS` = coefficients(OLS)[-1]
+    ) |> 
+  flextable() |> 
+  colformat_double(digits = 5) |> 
+  autofit()
+```
+
+
+
+```{r}
+#| echo: false
+# siste
+```
